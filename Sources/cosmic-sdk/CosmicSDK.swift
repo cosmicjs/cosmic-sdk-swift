@@ -63,7 +63,6 @@ public class CosmicSDKSwift {
     }
     
     private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String?, bucket: String, type: String, read_key: String, write_key: String?, limit: String?) -> URLRequest {
-        let id: String? = nil
         let body: Body? = nil
         let write_key: String? = nil
         let props: String? = nil
