@@ -122,10 +122,8 @@ extension CosmicSDKSwift {
         let request = prepareRequest(endpoint, id: nil, bucket: bucket, type: type, read_key: read_key, write_key: nil, limit: limit)
                 
         makeRequest(request: request) { result in
-            print(request)
             switch result {
             case .success(let success):
-                print(String(data: success, encoding: .utf8)!)
                 do {
                     let res = try JSONDecoder().decode(CosmicSDK<Object>.self, from: success)
                     completionHandler(.success(res))

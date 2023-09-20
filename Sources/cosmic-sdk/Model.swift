@@ -61,6 +61,7 @@ public struct CosmicSDK<T: Payload>: Codable {
 }
 
 public struct Object: Payload {
+    public let id: String?
     public let title: String
     public let slug: String?
     public let content: String?
