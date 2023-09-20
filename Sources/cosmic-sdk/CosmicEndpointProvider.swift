@@ -27,28 +27,24 @@ public struct CosmicEndpointProvider {
     }
     
     func getPath(api: API, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> String {
-        let write_key = "&write_key=\(String(describing: write_key))"
-        let props = "&props=\(String(describing: props))"
-        let limit = "&limit=\(String(describing: limit))"
-        let id = id
-            
+        let write_key = write_key != nil && !write_key!.isEmpty ? "&write_key=\(write_key!)" : ""
+        let props = props != nil && !props!.isEmpty ? "&props=\(props!)" : ""
+        let limit = limit != nil && !limit!.isEmpty ? "&limit=\(limit!)" : ""
+        let id = id ?? ""
+        
         switch source {
         case .cosmic:
             switch api {
             case .find:
                 return "/v3/buckets/\(bucket)/objects?pretty=true&query=%7B%22type%22%3A%22\(type)%22%7D&read_key=\(read_key)\(write_key)\(props)\(limit)"
-            case .findOne:
-                return "/v3/buckets/\(bucket)/objects/\(id!)"
+            case .findOne, .updateOne, .deleteOne:
+                return "/v3/buckets/\(bucket)/objects/\(id)"
             case .insertOne:
                 return "/v3/buckets/\(bucket)/objects/"
-            case .updateOne:
-                return "/v3/buckets/\(bucket)/objects/\(id!)"
-            case .deleteOne:
-                return "/v3/buckets/\(bucket)/objects/\(id!)"
             }
         }
     }
-    
+
     func getMethod(api: API) -> String {
         switch source {
         case .cosmic:
