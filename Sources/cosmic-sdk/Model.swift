@@ -54,14 +54,8 @@ public struct AnyCodable: Codable {
                 return val
             })
         } else if let dictionary = value as? [String: Any] {
-            // ensure all values in dictionary are AnyCodable
-            let mapped = try dictionary.mapValues {
-                guard let val = $0 as? AnyCodable else {
-                    throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: container.codingPath, debugDescription: "Invalid dictionary value element"))
-                }
-                return val
-            }
-            try container.encode(mapped)
+            let filteredDictionary = dictionary.compactMapValues { $0 as? AnyCodable }
+            try container.encode(filteredDictionary)
         }
     }
 }
