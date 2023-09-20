@@ -182,9 +182,9 @@ extension CosmicSDKSwift {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let body = Body(type: type, title: title, content: content ?? "", metadata: metadata ?? [:])
         let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
-        
-        print(request)
+
         makeRequest(request: request) { result in
+            print(result)
             switch result {
             case .success(let success):
                 do {
