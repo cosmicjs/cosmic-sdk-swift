@@ -110,10 +110,10 @@ public class CosmicSDKSwift {
 
 extension CosmicSDKSwift {
     struct Body: Encodable {
-        let type: String
+        let type: String?
         let title: String?
         let content: String?
-        let metadata: [String: AnyCodable]
+        let metadata: [String: AnyCodable]?
     }
     
     public struct SuccessResponse: Decodable {
@@ -180,7 +180,7 @@ extension CosmicSDKSwift {
     
     public func updateOne(with bucket: String, type: String, read_key: String, id: String, write_key: String, props: String, limit: String?, title: String, slug: String?, content: String?, metadata: [String: AnyCodable]?, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
-        let body = Body(type: type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata ?? [:])
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: ((metadata?.isEmpty) != nil) ? [:] : metadata)
         let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
         
         // Print request details
