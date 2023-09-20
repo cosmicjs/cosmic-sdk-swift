@@ -30,8 +30,8 @@ public struct CosmicEndpointProvider {
         let write_key = write_key != nil && !write_key!.isEmpty ? "&write_key=\(write_key!)" : ""
         let props = props != nil && !props!.isEmpty ? "&props=\(props!)" : ""
         let limit = limit != nil && !limit!.isEmpty ? "&limit=\(limit!)" : ""
-        let id = id ?? ""
-        
+        let id = id != nil && !id!.isEmpty ? id! : ""
+
         switch source {
         case .cosmic:
             switch api {
