@@ -26,7 +26,7 @@ public struct CosmicEndpointProvider {
         self.source = source
     }
     
-    func getPath(api: API, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: String?) -> String {
+    func getPath(api: API, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> String {
         switch source {
         case .cosmic:
             switch api {
