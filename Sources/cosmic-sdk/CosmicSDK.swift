@@ -75,7 +75,7 @@ public class CosmicSDKSwift {
         return prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
     }
 
-    
+   
     private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType?, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> URLRequest {
         var urlComponents = URLComponents(url: URL(string: config.baseURL)!, resolvingAgainstBaseURL: true)
         urlComponents?.path = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata ?? [:])
@@ -112,6 +112,7 @@ extension CosmicSDKSwift {
         makeRequest(request: request) { result in
             switch result {
             case .success(let success):
+                print(String(data: success, encoding: .utf8)!)
                 do {
                     let res = try JSONDecoder().decode(CosmicSDK<Object>.self, from: success)
                     completionHandler(.success(res))

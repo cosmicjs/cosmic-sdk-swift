@@ -30,12 +30,8 @@ public struct CosmicEndpointProvider {
         let write_key = "&write_key=\(String(describing: write_key))"
         let props = "&props=\(String(describing: props))"
         let limit = "&limit=\(String(describing: limit))"
-        if let id = id {
-            return id
-        } else {
-            print("Error: Please provide an object id")
-        }
-        
+        let id = id
+            
         switch source {
         case .cosmic:
             switch api {
