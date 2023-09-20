@@ -77,8 +77,20 @@ public class CosmicSDKSwift {
 
    
     private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType?, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> URLRequest {
-        var urlComponents = URLComponents(url: URL(string: config.baseURL)!, resolvingAgainstBaseURL: true)
-        urlComponents?.path = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata ?? [:])
+        let requestURL = URL(string: config.baseURL)!
+        var urlComponents = URLComponents(string: requestURL.absoluteString)
+
+        let pathAndQuery = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata ?? [:])
+        
+        let pathAndQueryComponents = pathAndQuery.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        
+        // Assign path and query separately
+        urlComponents?.path = String(pathAndQueryComponents[0])
+        
+        if pathAndQueryComponents.count > 1 {
+            urlComponents?.query = String(pathAndQueryComponents[1])
+        }
+        
         var request = URLRequest(url: urlComponents!.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
