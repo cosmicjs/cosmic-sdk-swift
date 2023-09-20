@@ -17,7 +17,7 @@ public struct AnyCodable: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if container.decodeNil() {
-            value = Optional<Any>.none as Any
+            value = NSNull()  // Here we handle null values
         } else if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
@@ -36,13 +36,13 @@ public struct AnyCodable: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         if value is NSNull {
-            try container.encodeNil()  // explicitly handle and encode 'nil' values
+            try container.encodeNil()
+        } else if let bool = value as? Bool {
+            try container.encode(bool)
         } else if let int = value as? Int {
             try container.encode(int)
         } else if let double = value as? Double {
             try container.encode(double)
-        } else if let bool = value as? Bool {
-            try container.encode(bool)
         } else if let string = value as? String {
             try container.encode(string)
         } else if let array = value as? [Any] {
