@@ -72,9 +72,14 @@ public struct CosmicSDK: Codable {
 
 public struct Object: Codable {
     public let id: String?
-    public let title: String
     public let slug: String?
+    public let title: String
     public let content: String?
+    public let created_at: String?
+    public let modified_at: String?
+    public let status: String?
+    public let published_at: String?
+    public let type: String?
     public let metadata: [String: AnyCodable]?
 }
 
