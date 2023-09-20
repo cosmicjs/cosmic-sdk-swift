@@ -66,13 +66,11 @@ public struct AnyCodable: Codable {
     }
 }
 
-public protocol Payload: Codable { }
-
-public struct CosmicSDK<T: Payload>: Codable {
+public struct CosmicSDK: Codable {
     public let objects: [Object]
 }
 
-public struct Object: Payload {
+public struct Object: Codable {
     public let id: String?
     public let title: String
     public let slug: String?
@@ -80,7 +78,7 @@ public struct Object: Payload {
     public let metadata: [String: AnyCodable]?
 }
 
-struct Command: Encodable {
+struct Command: Codable {
     public let title: String
     public let slug: String?
     public let content: String?
