@@ -123,6 +123,13 @@ extension CosmicSDKSwift {
     public func find(with bucket: String, type: String, read_key: String, props: String?, limit: String?, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
         let request = prepareRequest(endpoint, id: nil, bucket: bucket, type: type, read_key: read_key, write_key: nil, limit: limit)
+        
+        print("Request Method: \(request.httpMethod ?? "")")
+        print("Request URL: \(request.url?.absoluteString ?? "")")
+        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
+        if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
+            print("Request Body: \(bodyString)")
+        }
                 
         makeRequest(request: request) { result in
             switch result {
@@ -182,14 +189,6 @@ extension CosmicSDKSwift {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
         let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
-        
-        // Print request details
-            print("Request Method: \(request.httpMethod ?? "")")
-            print("Request URL: \(request.url?.absoluteString ?? "")")
-            print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
-            if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
-                print("Request Body: \(bodyString)")
-            }
 
         makeRequest(request: request) { result in
             switch result {
