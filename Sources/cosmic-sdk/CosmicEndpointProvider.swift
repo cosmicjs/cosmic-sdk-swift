@@ -36,7 +36,7 @@ public struct CosmicEndpointProvider {
         case .cosmic:
             switch api {
             case .find:
-                return "/v3/buckets/\(bucket)/objects?pretty=true&query=%7B%22type%22%3A%22\(type)%22%7D&read_key=\(read_key)\(write_key)\(props)\(limit)"
+                return "/v3/buckets/\(bucket)/objects?pretty=true&%7B%22type%22:%22\(type)%22%7D&read_key=\(read_key)\(write_key)\(props)\(limit)"
             case .findOne, .updateOne, .deleteOne:
                 return "/v3/buckets/\(bucket)/objects/\(id)"
             case .insertOne:
