@@ -17,7 +17,7 @@ public struct AnyCodable: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if container.decodeNil() {
-            value = NSNull()
+            value = Optional<Any>.none as Any
         } else if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
