@@ -35,20 +35,28 @@ public struct AnyCodable: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        switch value {
-        case let bool as Bool:
+        if value is NSNull {
+            try container.encodeNil()
+        } else if let bool = value as? Bool {
             try container.encode(bool)
-        case let int as Int:
+        } else if let int = value as? Int {
             try container.encode(int)
-        case let string as String:
+        } else if let string = value as? String {
             try container.encode(string)
-        case let values as [Any]:
-            try container.encode(values.map { if let value = $0 as? AnyCodable { return value }
-                        throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in array"))})
-        case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { if let value = $0 as? AnyCodable { return value }
-                        throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in dictionary"))})
-        default:
+        } else if let array = value as? [Any] {
+            try container.encode(array.map { anyValue in
+                guard let value = anyValue as? AnyCodable else {
+                    throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in array"))
+                }
+                return value
+            })
+        } else if value is [String: Any] {
+            if let dictionary = value as? [String : AnyCodable] {
+                try container.encode(dictionary)
+            } else {
+                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in dictionary"))
+            }
+        } else {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "AnyCodable can't encode this value"))
         }
     }
