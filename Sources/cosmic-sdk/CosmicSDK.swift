@@ -117,6 +117,10 @@ extension CosmicSDKSwift {
         let metadata: [String: AnyCodable]
     }
     
+    public struct SuccessResponse: Decodable {
+        public let message: String
+    }
+    
     public func find(with bucket: String, type: String, read_key: String, props: String?, limit: String?, completionHandler: @escaping (Result<CosmicSDK<Object>, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
         let request = prepareRequest(endpoint, id: nil, bucket: bucket, type: type, read_key: read_key, write_key: nil, limit: limit)
@@ -175,7 +179,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func updateOne(with bucket: String, type: String, read_key: String, id:String, write_key: String, props: String, limit: String?, title: String, slug: String?, content: String?, metadata: [String: AnyCodable]?, completionHandler: @escaping (Result<CosmicSDK<Object>, CosmicError>) -> Void) {
+    public func updateOne(with bucket: String, type: String, read_key: String, id:String, write_key: String, props: String, limit: String?, title: String, slug: String?, content: String?, metadata: [String: AnyCodable]?, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let body = Body(type: type, title: title, content: content ?? "", metadata: metadata ?? [:])
         let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
@@ -184,7 +188,7 @@ extension CosmicSDKSwift {
             switch result {
             case .success(let success):
                 do {
-                    let res = try JSONDecoder().decode(CosmicSDK<Object>.self, from: success)
+                    let res = try JSONDecoder().decode(SuccessResponse.self, from: success)
                     completionHandler(.success(res))
                 } catch {
                     completionHandler(.failure(.decodingError(error: error)))
@@ -195,7 +199,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func deleteOne(with bucket: String, type: String, read_key: String, write_key: String, id: String, completionHandler: @escaping (Result<CosmicSDK<Object>, CosmicError>) -> Void) {
+    public func deleteOne(with bucket: String, type: String, read_key: String, write_key: String, id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.deleteOne
         let request = prepareRequest(endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, limit: nil)
                 
@@ -203,7 +207,7 @@ extension CosmicSDKSwift {
             switch result {
             case .success(let success):
                 do {
-                    let res = try JSONDecoder().decode(CosmicSDK<Object>.self, from: success)
+                    let res = try JSONDecoder().decode(SuccessResponse.self, from: success)
                     completionHandler(.success(res))
                 } catch {
                     completionHandler(.failure(.decodingError(error: error)))
