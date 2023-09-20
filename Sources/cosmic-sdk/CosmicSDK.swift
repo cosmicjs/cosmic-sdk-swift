@@ -77,20 +77,22 @@ public class CosmicSDKSwift {
    
     private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType?, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> URLRequest {
         let requestURL = URL(string: config.baseURL)!
-        var urlComponents = URLComponents(string: requestURL.absoluteString)
+        var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
 
-        let pathAndQuery = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata ?? [:])
-        
-        let pathAndQueryComponents = pathAndQuery.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
-        
-        // Assign path and query separately
-        urlComponents?.path = String(pathAndQueryComponents[0])
-        
-        if pathAndQueryComponents.count > 1 {
-            urlComponents?.query = String(pathAndQueryComponents[1])
+        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata ?? [:])
+
+        // Set the path
+        urlComponents.path = pathAndParameters.0
+
+        // Create the URLQueryItems
+        urlComponents.queryItems = pathAndParameters.1.compactMap { (key, value) in
+            if let value = value {
+                return URLQueryItem(name: key, value: value)
+            }
+            return nil
         }
-        
-        var request = URLRequest(url: urlComponents!.url!)
+
+        var request = URLRequest(url: urlComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
         config.authorizeRequest(&request)
@@ -123,13 +125,6 @@ extension CosmicSDKSwift {
     public func find(with bucket: String, type: String, read_key: String, props: String?, limit: String?, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
         let request = prepareRequest(endpoint, id: nil, bucket: bucket, type: type, read_key: read_key, write_key: nil, limit: limit)
-        
-        print("Request Method: \(request.httpMethod ?? "")")
-        print("Request URL: \(request.url?.absoluteString ?? "")")
-        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
-        if let httpBody = request.httpBody, let bodyString = String(data: httpBody, encoding: .utf8) {
-            print("Request Body: \(bodyString)")
-        }
                 
         makeRequest(request: request) { result in
             switch result {
