@@ -36,28 +36,32 @@ public struct AnyCodable: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         if value is NSNull {
-            try container.encodeNil()
-        } else if let bool = value as? Bool {
-            try container.encode(bool)
+            try container.encodeNil()  // explicitly handle and encode 'nil' values
         } else if let int = value as? Int {
             try container.encode(int)
+        } else if let double = value as? Double {
+            try container.encode(double)
+        } else if let bool = value as? Bool {
+            try container.encode(bool)
         } else if let string = value as? String {
             try container.encode(string)
         } else if let array = value as? [Any] {
-            try container.encode(array.map { anyValue in
-                guard let value = anyValue as? AnyCodable else {
-                    throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in array"))
+            // ensure all elements in array are AnyCodable
+            try container.encode(array.map {
+                guard let val = $0 as? AnyCodable else {
+                    throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: container.codingPath, debugDescription: "Invalid array element"))
                 }
-                return value
+                return val
             })
-        } else if value is [String: Any] {
-            if let dictionary = value as? [String : AnyCodable] {
-                try container.encode(dictionary)
-            } else {
-                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in dictionary"))
+        } else if let dictionary = value as? [String: Any] {
+            // ensure all values in dictionary are AnyCodable
+            let mapped = try dictionary.mapValues {
+                guard let val = $0 as? AnyCodable else {
+                    throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: container.codingPath, debugDescription: "Invalid dictionary value element"))
+                }
+                return val
             }
-        } else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "AnyCodable can't encode this value"))
+            try container.encode(mapped)
         }
     }
 }
