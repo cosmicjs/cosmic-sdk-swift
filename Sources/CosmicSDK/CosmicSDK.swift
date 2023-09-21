@@ -115,13 +115,6 @@ public class CosmicSDKSwift {
                     request.httpBody = encodedParameters
                 }
             }
-            if let sort = sort {
-                parameters["sort"] = sort.rawValue
-            }
-            if let status = status {
-                parameters["status"] = status.rawValue
-            }
-
         }
         return request
     }

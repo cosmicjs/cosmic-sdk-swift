@@ -51,16 +51,14 @@ public struct CosmicEndpointProvider {
         case .cosmic:
             switch api {
             case .find:
-                var queryComponents: [String: String] = ["type": type]
+                var queryComponents: [String: String?] = ["type": type, "props": props, "limit": limit, "read_key": read_key, "write_key": write_key]
                 if let status = status {
                     queryComponents["status"] = status.rawValue
                 }
                 if let sort = sort {
                     queryComponents["sort"] = sort.rawValue
                 }
-                let queryData = try! JSONSerialization.data(withJSONObject: queryComponents, options: [])
-                let queryString = String(data: queryData, encoding: .utf8)!
-                return ("/v3/buckets/\(bucket)/objects", ["pretty": "true", "query": queryString, "read_key": read_key, "props": props, "limit": limit, "write_key": write_key])
+                return ("/v3/buckets/\(bucket)/objects", queryComponents)
             case .findOne, .updateOne, .deleteOne:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
                 return ("/v3/buckets/\(bucket)/objects/\(id)", [:])
