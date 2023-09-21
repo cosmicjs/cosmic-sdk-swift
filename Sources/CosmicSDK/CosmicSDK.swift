@@ -71,11 +71,11 @@ public class CosmicSDKSwift {
         task.resume()
     }
    
-    private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil) -> URLRequest {
+    private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest {
         let requestURL = URL(string: config.baseURL)!
         var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
 
-        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit)
+        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, status: status, sort: sort)
 
         // Set the path
         urlComponents.path = pathAndParameters.0
@@ -132,7 +132,7 @@ extension CosmicSDKSwift {
         public let message: String
     }
     
-    public func find(type: String, props: String? = nil, limit: String? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func find(type: String, props: String? = nil, limit: String? = nil, sort: CosmicEndpointProvider.Sorting.RawValue? = nil, status: CosmicEndpointProvider.Status.RawValue? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit)
                 
@@ -151,7 +151,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, sort: CosmicEndpointProvider.Sorting.RawValue? = nil, status: CosmicEndpointProvider.Status.RawValue? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey)
                 
@@ -170,7 +170,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func insertOne(type: String, id: String, props: String, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func insertOne(type: String, id: String, props: String, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting.RawValue? = nil, status: CosmicEndpointProvider.Status.RawValue? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
         let request = prepareRequest(endpoint, body: body, id: nil, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
@@ -190,7 +190,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting.RawValue? = nil, status: CosmicEndpointProvider.Status.RawValue? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
         let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
@@ -210,7 +210,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func deleteOne(type: String, id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func deleteOne(type: String, id: String, sort: CosmicEndpointProvider.Sorting.RawValue? = nil, status: CosmicEndpointProvider.Status.RawValue? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.deleteOne
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
                 
