@@ -37,7 +37,7 @@ public class CosmicSDKSwift {
         let authorizeRequest: (inout URLRequest) -> Void
         let readKey: String
         
-        public static func makeDefaultCosmic(read_key: String, write_key: String) -> Self {
+        public static func createBucketClient(read_key: String, write_key: String) -> Self {
             .init(baseURL: "https://api.cosmicjs.com",
                   endpointPrivider: CosmicEndpointProvider(source: .cosmic),
                   readKey: read_key,
