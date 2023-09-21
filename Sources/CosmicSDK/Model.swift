@@ -79,6 +79,19 @@ public struct Object: Codable {
     public let published_at: String?
     public let type: String?
     public let metadata: [String: AnyCodable]?
+    
+    init(id: String? = nil, slug: String? = nil, title: String, content: String? = nil, created_at: String? = nil, modified_at: String? = nil, status: String? = nil, published_at: String? = nil, type: String? = nil, metadata: [String: AnyCodable]? = nil) {
+            self.id = id
+            self.slug = slug
+            self.title = title
+            self.content = content
+            self.created_at = created_at
+            self.modified_at = modified_at
+            self.status = status
+            self.published_at = published_at
+            self.type = type
+            self.metadata = metadata
+        }
 }
 
 struct Command: Codable {
