@@ -51,24 +51,20 @@ public struct CosmicEndpointProvider {
         case .cosmic:
             switch api {
             case .find:
-                var queryComponents: [String: String] = ["type": type]
+                let queryComponents: [String: String] = ["type": type]
+                var queryData: Data? = nil
+                if queryComponents.count > 0 {
+                    queryData = try? JSONSerialization.data(withJSONObject: queryComponents, options: [])
+                }
+                let queryString = queryData != nil ? String(data: queryData!, encoding: .utf8) : nil
+                var parameters = ["pretty": "true", "query": queryString, "read_key": read_key, "props": props, "limit": limit, "write_key": write_key]
                 if let status = status {
-                    queryComponents["status"] = status.rawValue
+                    parameters["status"] = status.rawValue
                 }
                 if let sort = sort {
-                    queryComponents["sort"] = sort.rawValue
+                    parameters["sort"] = sort.rawValue
                 }
-                do {
-                    let queryData = try JSONSerialization.data(withJSONObject: queryComponents, options: [])
-                    if let queryString = String(data: queryData, encoding: .utf8) {
-                        return ("/v3/buckets/\(bucket)/objects", ["pretty": "true", "query": queryString, "read_key": read_key, "props": props, "limit": limit, "write_key": write_key])
-                    } else {
-                        print("Error: could not create string from queryData")
-                    }
-                } catch {
-                    print("Error serializing queryComponents: \(error)")
-                }
-                return ("/v3/buckets/\(bucket)/objects", queryComponents)
+                return ("/v3/buckets/\(bucket)/objects", parameters)
             case .findOne, .updateOne, .deleteOne:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
                 return ("/v3/buckets/\(bucket)/objects/\(id)", [:])

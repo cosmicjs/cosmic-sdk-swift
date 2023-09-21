@@ -136,12 +136,6 @@ extension CosmicSDKSwift {
         let endpoint = CosmicEndpointProvider.API.find
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit, sort: sort, status: status)
         
-        if let url = request.url {
-            print("URL: \(url)")
-        } else {
-            print("The URLRequest does not have a URL")
-        }
-        
         makeRequest(request: request) { result in
             switch result {
             case .success(let success):
