@@ -156,7 +156,6 @@ extension CosmicSDKSwift {
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
         
         print(request.url!)
-        print(request.httpBody ?? "")
                 
         makeRequest(request: request) { result in
             switch result {

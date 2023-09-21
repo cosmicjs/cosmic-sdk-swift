@@ -45,7 +45,6 @@ public struct CosmicEndpointProvider {
     }
     
     func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
-        let write_key = write_key.map { "&write_key=\($0)" } ?? ""
         
         switch source {
         case .cosmic:
@@ -65,7 +64,10 @@ public struct CosmicEndpointProvider {
                     parameters["sort"] = sort.rawValue
                 }
                 return ("/v3/buckets/\(bucket)/objects", parameters)
-            case .findOne, .updateOne, .deleteOne:
+            case .findOne:
+                guard let id = id else { fatalError("Missing ID for \(api) operation") }
+                return ("/v3/buckets/\(bucket)/objects/\(id)", ["read_key": read_key])
+            case .updateOne, .deleteOne:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
                 return ("/v3/buckets/\(bucket)/objects/\(id)", [:])
             case .insertOne:
