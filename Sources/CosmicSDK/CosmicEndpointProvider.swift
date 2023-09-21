@@ -20,27 +20,49 @@ public struct CosmicEndpointProvider {
         case cosmic
     }
     
-    public let source: Source
-    
-    public init(source: CosmicEndpointProvider.Source) {
-        self.source = source
+    public enum Status: String {
+        case published
+        case any
+    }
+
+    public enum Sorting: String {
+        case created_at
+        case _created_at = "-created_at"
+        case modified_at
+        case _modified_at = "-modified_at"
+        case random
+        case order
     }
     
-    func getPath(api: API, id: String?, bucket: String, type: String, read_key: String, write_key: String?, props: String?, limit: String?, title: String?, slug: String?, content: String?, metadata: [String: AnyCodable]?) -> (String, [String: String?]) {
-        let write_key = write_key != nil && !write_key!.isEmpty ? "&write_key=\(write_key!)" : ""
-        let props = props != nil && !props!.isEmpty ? "&props=\(props!)" : ""
-        let limit = limit != nil && !limit!.isEmpty ? "&limit=\(limit!)" : ""
-        let id = id != nil && !id!.isEmpty ? id! : ""
-
+    public let source: Source
+    public let status: Status
+    public let sorting: Sorting
+    
+    public init(source: CosmicEndpointProvider.Source, status: Status = .published, sorting: Sorting = .order) {
+        self.source = source
+        self.status = status
+        self.sorting = sorting
+    }
+    
+    func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
+        let write_key = write_key.map { "&write_key=\($0)" } ?? ""
+        
         switch source {
         case .cosmic:
             switch api {
             case .find:
-                let queryComponents: [String: String] = ["type": type]
+                var queryComponents: [String: String] = ["type": type]
+                if let status = status {
+                    queryComponents["status"] = status.rawValue
+                }
+                if let sort = sort {
+                    queryComponents["sort"] = sort.rawValue
+                }
                 let queryData = try! JSONSerialization.data(withJSONObject: queryComponents, options: [])
                 let queryString = String(data: queryData, encoding: .utf8)!
                 return ("/v3/buckets/\(bucket)/objects", ["pretty": "true", "query": queryString, "read_key": read_key, "props": props, "limit": limit, "write_key": write_key])
             case .findOne, .updateOne, .deleteOne:
+                guard let id = id else { fatalError("Missing ID for \(api) operation") }
                 return ("/v3/buckets/\(bucket)/objects/\(id)", [:])
             case .insertOne:
                 return ("/v3/buckets/\(bucket)/objects/", [:])
