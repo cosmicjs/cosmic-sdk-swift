@@ -24,20 +24,23 @@ public class CosmicSDKSwift {
         
         /// Initialiser
         /// - Parameter session: the session to use for network requests.
-        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
+        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, readKey: String, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
             self.baseURL = baseURL
             self.endpointProvider = endpointPrivider
             self.authorizeRequest = authorizeRequest
+            self.readKey = readKey
             self.session = session
         }
         let baseURL: String
         let endpointProvider: CosmicEndpointProvider
-        let session:URLSession
+        let session: URLSession
         let authorizeRequest: (inout URLRequest) -> Void
+        let readKey: String
         
-        public static func makeDefaultCosmic(write_key: String) -> Self {
+        public static func makeDefaultCosmic(read_key: String, write_key: String) -> Self {
             .init(baseURL: "https://api.cosmicjs.com",
                   endpointPrivider: CosmicEndpointProvider(source: .cosmic),
+                  readKey: read_key,
                   session: .shared,
                   authorizeRequest: { request in
                     request.setValue("Bearer \(write_key)", forHTTPHeaderField: "Authorization")
@@ -66,7 +69,7 @@ public class CosmicSDKSwift {
         let requestURL = URL(string: config.baseURL)!
         var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
 
-        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit)
+        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: bucket, type: type, read_key: config.readKey, write_key: write_key, props: props, limit: limit)
 
         // Set the path
         urlComponents.path = pathAndParameters.0
@@ -124,9 +127,9 @@ extension CosmicSDKSwift {
         public let message: String
     }
     
-    public func find(with bucket: String, type: String, read_key: String, props: String?, limit: String?, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func find(with bucket: String, type: String, props: String?, limit: String?, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: bucket, type: type, read_key: read_key, limit: limit)
+        let request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: bucket, type: type, read_key: config.readKey, limit: limit)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -143,9 +146,9 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func findOne(with bucket: String, type: String, read_key: String, props: String?, limit: String?, id: String, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func findOne(with bucket: String, type: String, props: String?, limit: String?, id: String, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: bucket, type: type, read_key: read_key)
+        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: bucket, type: type, read_key: config.readKey)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -165,7 +168,7 @@ extension CosmicSDKSwift {
     public func insertOne(with bucket: String, type: String, read_key: String, id: String, write_key: String, props: String, limit: String?, title: String, slug: String?, content: String?, metadata: [String: AnyCodable]?, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
-        let request = prepareRequest(endpoint, body: body, id: nil, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
+        let request = prepareRequest(endpoint, body: body, id: nil, bucket: bucket, type: type, read_key: config.readKey, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -185,7 +188,7 @@ extension CosmicSDKSwift {
     public func updateOne(with bucket: String, type: String, read_key: String, id: String, write_key: String, props: String, limit: String?, title: String, slug: String?, content: String?, metadata: [String: AnyCodable]?, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
-        let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
+        let request = prepareRequest(endpoint, body: body, id: id, bucket: bucket, type: type, read_key: config.readKey, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
 
         makeRequest(request: request) { result in
             switch result {
@@ -204,7 +207,7 @@ extension CosmicSDKSwift {
     
     public func deleteOne(with bucket: String, type: String, read_key: String, write_key: String, id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.deleteOne
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key)
+        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: bucket, type: type, read_key: config.readKey, write_key: write_key)
                 
         print(request)
         makeRequest(request: request) { result in
