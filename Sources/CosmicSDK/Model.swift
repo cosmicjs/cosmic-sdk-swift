@@ -17,7 +17,7 @@ public struct AnyCodable: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if container.decodeNil() {
-            value = NSNull()
+            value = NSNull()  // Here we handle null values
         } else if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
@@ -35,39 +35,49 @@ public struct AnyCodable: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        switch value {
-        case let bool as Bool:
+        if value is NSNull {
+            try container.encodeNil()
+        } else if let bool = value as? Bool {
             try container.encode(bool)
-        case let int as Int:
+        } else if let int = value as? Int {
             try container.encode(int)
-        case let string as String:
+        } else if let double = value as? Double {
+            try container.encode(double)
+        } else if let string = value as? String {
             try container.encode(string)
-        case let values as [Any]:
-            try container.encode(values.map { if let value = $0 as? AnyCodable { return value }
-                        throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in array"))})
-        case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { if let value = $0 as? AnyCodable { return value }
-                        throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "Invalid value in dictionary"))})
-        default:
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath,debugDescription: "AnyCodable can't encode this value"))
+        } else if let array = value as? [Any] {
+            // ensure all elements in array are AnyCodable
+            try container.encode(array.map {
+                guard let val = $0 as? AnyCodable else {
+                    throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: container.codingPath, debugDescription: "Invalid array element"))
+                }
+                return val
+            })
+        } else if let dictionary = value as? [String: Any] {
+            let filteredDictionary = dictionary.compactMapValues { $0 as? AnyCodable }
+            try container.encode(filteredDictionary)
         }
     }
 }
 
-public protocol Payload: Codable { }
-
-public struct CosmicSDK<T: Payload>: Codable {
+public struct CosmicSDK: Codable {
     public let objects: [Object]
 }
 
-public struct Object: Payload {
-    public let title: String
+public struct Object: Codable {
+    public let id: String?
     public let slug: String?
+    public let title: String
     public let content: String?
+    public let created_at: String?
+    public let modified_at: String?
+    public let status: String?
+    public let published_at: String?
+    public let type: String?
     public let metadata: [String: AnyCodable]?
 }
 
-struct Command: Encodable {
+struct Command: Codable {
     public let title: String
     public let slug: String?
     public let content: String?
