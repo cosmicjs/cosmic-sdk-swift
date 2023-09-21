@@ -21,17 +21,17 @@ public struct CosmicEndpointProvider {
     }
     
     public enum Status: String {
-        case published
-        case any
+        case published = "published"
+        case any = "any"
     }
 
     public enum Sorting: String {
-        case created_at
-        case _created_at = "-created_at"
-        case modified_at
-        case _modified_at = "-modified_at"
-        case random
-        case order
+        case created_at = "created_at"
+        case reverse_created_at = "-created_at"
+        case modified_at = "modified_at"
+        case reverse_modified_at = "-modified_at"
+        case random = "random"
+        case order = "order"
     }
     
     public let source: Source
