@@ -54,7 +54,7 @@ public class CosmicSDKSwift {
         }
     }
     
-    public init(config: Config) {
+    public init(_ config: Config) {
         self.config = config
     }
     
