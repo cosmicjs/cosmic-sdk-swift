@@ -64,6 +64,10 @@ public struct CosmicSDK: Codable {
     public let objects: [Object]
 }
 
+public struct CosmicSDKSingle: Codable {
+    public let object: Object
+}
+
 public struct Object: Codable {
     public let id: String?
     public let slug: String?

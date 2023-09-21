@@ -151,7 +151,7 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
                 
@@ -159,7 +159,7 @@ extension CosmicSDKSwift {
             switch result {
             case .success(let success):
                 do {
-                    let res = try JSONDecoder().decode(CosmicSDK.self, from: success)
+                    let res = try JSONDecoder().decode(CosmicSDKSingle.self, from: success)
                     completionHandler(.success(res))
                 } catch {
                     completionHandler(.failure(.decodingError(error: error)))
