@@ -154,6 +154,9 @@ extension CosmicSDKSwift {
     public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
         let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
+        
+        print(request.url!)
+        print(request.httpBody!)
                 
         makeRequest(request: request) { result in
             switch result {
