@@ -1,7 +1,7 @@
 import XCTest
-@testable import cosmic_sdk
+@testable import CosmicSDK
 
-final class cosmic_sdkTests: XCTestCase {
+final class CosmicSDKTests: XCTestCase {
     func testExample() throws {
         // XCTest Documenation
         // https://developer.apple.com/documentation/xctest
