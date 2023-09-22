@@ -20,7 +20,7 @@ Having built multiple Cosmic-powered SwiftUI apps, it felt time to provide a sma
 
 You can use Swift Package Manager to integrate the SDK by adding the following dependency in the `Package.swift` file or by adding it directly within Xcode.
 
-`.package(url: "https://github.com/cosmicjs/CosmicSDKSwift.git", from: "1.0.0")`
+`.package(url: "https://github.com/cosmicjs/cosmic-sdk-swift.git", from: "1.0.0")`
 
 ## Usage
 
