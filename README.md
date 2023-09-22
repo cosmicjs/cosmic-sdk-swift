@@ -64,7 +64,13 @@ With optional props, limit, sorting and status parameters.
 ```swift
 @State var objects: [Object] = []
 
-cosmic.find(type: TYPE, props: "metadata.image.imgix_url,slug", limit: "10", sort: .random, status: .any) { results in
+cosmic.find(
+    type: TYPE, 
+    props: "metadata.image.imgix_url,slug", 
+    limit: "10", 
+    sort: .random, 
+    status: .any
+    ) { results in
     switch results {
     case .success(let result):
         self.objects = result.objects
