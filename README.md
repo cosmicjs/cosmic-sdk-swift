@@ -30,7 +30,15 @@ Import the framework in your project:
 
 You can get your API access keys by going to Bucket Settings > API Access in the [Cosmic dashboard](https://app.cosmicjs.com/login).
 
-`let cosmic = CosmicSDKSwift(.createBucketClient(bucketSlug: BUCKET, readKey: READ_KEY, writeKey: WRITE_KEY))`
+```swift
+let cosmic = CosmicSDKSwift(
+    .createBucketClient(
+        bucketSlug: BUCKET, 
+        readKey: READ_KEY, 
+        writeKey: WRITE_KEY
+      )
+  )
+```
 
 To see all the available methods, you can look at our [JavaScript implementation](https://www.cosmicjs.com/docs/api/) for now. This project is not at feature parity or feature complete, but the methods listed below are.
 
