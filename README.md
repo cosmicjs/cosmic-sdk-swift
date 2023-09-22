@@ -66,8 +66,8 @@ With optional props, limit, sorting and status parameters.
 
 cosmic.find(type: TYPE, props: "metadata.image.imgix_url,slug", limit: "10", sort: .random, status: .any) { results in
     switch results {
-    case .success(let cosmicSDKResult):
-        self.objects = cosmicSDKResult.objects
+    case .success(let result):
+        self.objects = result.objects
     case .failure(let error):
         print(error)
     }
@@ -81,8 +81,8 @@ cosmic.find(type: TYPE, props: "metadata.image.imgix_url,slug", limit: "10", sor
 
 cosmic.findOne(type: TYPE, id: object.id) { results in
     switch results {
-    case .success(let cosmicSDKResult):
-        self.object = cosmicSDKResult.object
+    case .success(let result):
+        self.object = result.object
     case .failure(let error):
         print(error)
     }
@@ -102,9 +102,14 @@ if let object = object {
 `.insertOne()` adds a new Object to your Cosmic Bucket. Use this for adding a new Object to an existing Object Type.
 
 ```swift
-cosmic.insertOne(type: TYPE, id: object.id, props: object.props, title: object.title) { results in
+cosmic.insertOne(
+    type: TYPE, 
+    id: object.id, 
+    props: object.props, 
+    title: object.title
+    ) { results in
     switch results {
-    case .success(let cosmicSDKResult):
+    case .success(_):
         print("Updated \(object.id)")
     case .failure(let error):
         print(error)
@@ -115,9 +120,17 @@ cosmic.insertOne(type: TYPE, id: object.id, props: object.props, title: object.t
 With optional props for content, metadata and slug
 
 ```swift
-cosmic.insertOne(type: TYPE, id: object.id, props: object.props, title: object.title, content: object.content, metadata: ["key": "value"], slug: object.slug) { results in
+cosmic.insertOne(
+    type: TYPE, 
+    id: object.id, 
+    props: object.props, 
+    title: object.title, 
+    content: object.content, 
+    metadata: ["key": "value"], 
+    slug: object.slug
+    ) { results in
     switch results {
-    case .success(let cosmicSDKResult):
+    case .success(_):
         print("Inserted \(object.id)")
     case .failure(let error):
         print(error)
@@ -132,7 +145,7 @@ When using `.updateOne()` you can update an Object's metadata by passing the opt
 ```swift
 cosmic.updateOne(type: TYPE, id: object.id) { results in
     switch results {
-    case .success(let cosmicSDKResult):
+    case .success(_):
         print("Updated \(object.id)")
     case .failure(let error):
         print(error)
@@ -143,9 +156,16 @@ cosmic.updateOne(type: TYPE, id: object.id) { results in
 With optional props for title, content, metadata and status
 
 ```swift
-cosmic.updateOne(type: TYPE, id: object.id, title: object.title, content: object.content, metadata: ["key": "value"], status: .published) { results in
+cosmic.updateOne(
+    type: TYPE, 
+    id: object.id, 
+    title: object.title, 
+    content: object.content, 
+    metadata: ["key": "value"], 
+    status: .published
+    ) { results in
     switch results {
-    case .success(let cosmicSDKResult):
+    case .success(_):
         print("Updated \(object.id)")
     case .failure(let error):
         print(error)
