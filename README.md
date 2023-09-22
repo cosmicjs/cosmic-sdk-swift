@@ -26,7 +26,7 @@ You can use Swift Package Manager to integrate the SDK by adding the following d
 
 Import the framework in your project:
 
-`import CosmicSDKSwift`
+`import CosmicSDK`
 
 You can get your API access keys by going to Bucket Settings > API Access in the [Cosmic dashboard](https://app.cosmicjs.com/login).
 
