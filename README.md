@@ -99,6 +99,8 @@ if let object = object {
 
 ### [Insert One](https://www.cosmicjs.com/docs/api/objects#create-an-object)
 
+`.insertOne()` adds a new Object to your Cosmic Bucket. Use this for adding a new Object to an existing Object Type.
+
 ```swift
 cosmic.insertOne(type: TYPE, id: object.id, props: object.props, title: object.title) { results in
     switch results {
