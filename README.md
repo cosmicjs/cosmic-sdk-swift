@@ -110,8 +110,6 @@ if let object = object {
 ```swift
 cosmic.insertOne(
     type: TYPE, 
-    id: object.id, 
-    props: object.props, 
     title: object.title
     ) { results in
     switch results {
