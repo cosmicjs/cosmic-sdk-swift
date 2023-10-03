@@ -170,10 +170,11 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
-        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
-        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -190,10 +191,11 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
-        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadata)
-        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata, status: status)
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable)
+        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
 
         makeRequest(request: request) { result in
             switch result {
