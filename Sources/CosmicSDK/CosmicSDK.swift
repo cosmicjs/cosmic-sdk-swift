@@ -170,10 +170,10 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func insertOne(type: String, id: String, props: String, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadata?.isEmpty == true ? nil : metadata)
-        let request = prepareRequest(endpoint, body: body, id: nil, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata)
                 
         makeRequest(request: request) { result in
             switch result {
