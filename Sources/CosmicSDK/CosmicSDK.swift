@@ -129,7 +129,7 @@ extension CosmicSDKSwift {
     }
     
     public struct SuccessResponse: Decodable {
-        public let message: String
+        public let message: String?
     }
     
     public func find(type: String, props: String? = nil, limit: String? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
