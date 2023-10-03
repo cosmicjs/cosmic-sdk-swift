@@ -36,8 +36,8 @@ let cosmic = CosmicSDKSwift(
         bucketSlug: BUCKET, 
         readKey: READ_KEY, 
         writeKey: WRITE_KEY
-      )
-  )
+    )
+)
 ```
 
 To see all the available methods, you can look at our [JavaScript implementation](https://www.cosmicjs.com/docs/api/) for now. This project is not at feature parity or feature complete, but the methods listed below are.
