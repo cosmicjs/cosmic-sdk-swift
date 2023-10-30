@@ -22,6 +22,7 @@ public struct CosmicEndpointProvider {
     
     public enum Status: String {
         case published = "published"
+        case draft = "draft"
         case any = "any"
     }
 
