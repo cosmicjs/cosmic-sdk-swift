@@ -782,3 +782,81 @@ extension CosmicSDKSwift {
         }
     }
 }
+
+// MARK: - AI Operations
+extension CosmicSDKSwift {
+    public func generateText(prompt: String, model: String = "gpt-4") async throws -> AITextResponse {
+        let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
+        let body = ["prompt": prompt, "model": model]
+        var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(AITextResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid") async throws -> AIImageResponse {
+        let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
+        let body = [
+            "prompt": prompt,
+            "model": model,
+            "size": size,
+            "quality": quality,
+            "style": style
+        ]
+        var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(AIImageResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - AI Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func generateText(prompt: String, model: String = "gpt-4", completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await generateText(prompt: prompt, model: model)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid", completionHandler: @escaping (Result<AIImageResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await generateImage(prompt: prompt, model: model, size: size, quality: quality, style: style)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}

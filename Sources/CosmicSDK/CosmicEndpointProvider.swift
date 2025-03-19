@@ -50,6 +50,10 @@ public struct CosmicEndpointProvider {
         case getWebhooks
         case addWebhook
         case deleteWebhook
+        
+        // AI operations
+        case generateText(String)
+        case generateImage(String)
     }
     
     public enum Status: String {
@@ -70,7 +74,7 @@ public struct CosmicEndpointProvider {
             switch api {
             case .find, .findOne, .getMedia, .getMediaObject, .getObjectRevisions, .searchObjects, .getBucket, .getUsers, .getUser, .getWebhooks:
                 return "GET"
-            case .insertOne, .uploadMedia, .addUser, .addWebhook:
+            case .insertOne, .uploadMedia, .addUser, .addWebhook, .generateText, .generateImage:
                 return "POST"
             case .updateOne, .updateBucketSettings:
                 return "PATCH"
@@ -141,6 +145,12 @@ public struct CosmicEndpointProvider {
             case .deleteWebhook:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
                 return ("/v3/buckets/\(bucket)/webhooks/\(id)", ["write_key": write_key])
+                
+            // AI endpoints
+            case .generateText(let bucket):
+                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", ["write_key": write_key])
+            case .generateImage(let bucket):
+                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", ["write_key": write_key])
             }
         }
     }
