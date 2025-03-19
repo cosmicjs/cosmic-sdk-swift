@@ -16,6 +16,13 @@ public enum CosmicError: Error {
     case decodingError(error: Error)
 }
 
+/// CosmicSDKSwift provides a Swift interface to the Cosmic API.
+///
+/// This SDK requires:
+/// - iOS 14.0+ / macOS 11.0+ / tvOS 14.0+ / watchOS 7.0+
+/// - Swift 5.5+
+///
+/// These requirements are due to the use of async/await features.
 public class CosmicSDKSwift {
     fileprivate let config: Config
 
@@ -88,34 +95,14 @@ public class CosmicSDKSwift {
         
         config.authorizeRequest(&request)
         
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         if let body = body {
-            let encoder = JSONEncoder()
-            if let encoded = try? encoder.encode(body) {
-                request.httpBody = encoded
-            }
-        } else {
-            // Convert the optional parameters to a dictionary
-            var parameters = [String: Any]()
-            if let title = title {
-                parameters["title"] = title
-            }
-            if let slug = slug {
-                parameters["slug"] = slug
-            }
-            if let content = content {
-                parameters["content"] = content
-            }
-            if let metadata = metadata {
-                parameters["metadata"] = metadata
-            }
-            if !parameters.isEmpty {
-                if let encodedParameters = try? JSONSerialization.data(withJSONObject: parameters, options: []) {
-                    request.httpBody = encodedParameters
-                }
+            if let jsonData = try? JSONEncoder().encode(body) {
+                request.httpBody = jsonData
             }
         }
+        
         return request
     }
 }
@@ -241,7 +228,7 @@ extension CosmicSDKSwift {
         
         // Create multipart form data
         let boundary = UUID().uuidString
-        var request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        var request = prepareRequest(endpoint, body: nil as String?, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var data = Data()
@@ -424,12 +411,8 @@ extension CosmicSDKSwift {
     
     public func searchObjects(query: String) async throws -> CosmicSDK {
         let endpoint = CosmicEndpointProvider.API.searchObjects
-        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
-        
-        let searchBody = ["query": query]
-        if let encoded = try? JSONEncoder().encode(searchBody) {
-            request.httpBody = encoded
-        }
+        let searchBody = ["query": query] as [String: String]
+        var request = prepareRequest(endpoint, body: searchBody, bucket: config.bucketSlug, type: "", read_key: config.readKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -499,11 +482,7 @@ extension CosmicSDKSwift {
     
     public func updateBucketSettings(settings: BucketSettings) async throws -> SuccessResponse {
         let endpoint = CosmicEndpointProvider.API.updateBucketSettings
-        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
-        
-        if let encoded = try? JSONEncoder().encode(settings) {
-            request.httpBody = encoded
-        }
+        var request = prepareRequest(endpoint, body: settings, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -594,12 +573,8 @@ extension CosmicSDKSwift {
     
     public func addUser(email: String, role: String) async throws -> UserSingleResponse {
         let endpoint = CosmicEndpointProvider.API.addUser
-        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
-        
-        let userBody = ["email": email, "role": role]
-        if let encoded = try? JSONEncoder().encode(userBody) {
-            request.httpBody = encoded
-        }
+        let userBody = ["email": email, "role": role] as [String: String]
+        var request = prepareRequest(endpoint, body: userBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -712,12 +687,8 @@ extension CosmicSDKSwift {
     
     public func addWebhook(event: String, endpoint: String) async throws -> SuccessResponse {
         let endpoint = CosmicEndpointProvider.API.addWebhook
-        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
-        
-        let webhookBody = ["event": event, "endpoint": endpoint]
-        if let encoded = try? JSONEncoder().encode(webhookBody) {
-            request.httpBody = encoded
-        }
+        let webhookBody = ["event": event, "endpoint": endpoint] as [String: String]
+        var request = prepareRequest(endpoint, body: webhookBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
