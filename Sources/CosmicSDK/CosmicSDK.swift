@@ -116,6 +116,35 @@ public class CosmicSDKSwift {
     private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest {
         return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status)
     }
+
+    private func mimeType(for url: URL) -> String {
+        let pathExtension = url.pathExtension.lowercased()
+        
+        switch pathExtension {
+        case "jpg", "jpeg":
+            return "image/jpeg"
+        case "png":
+            return "image/png"
+        case "gif":
+            return "image/gif"
+        case "webp":
+            return "image/webp"
+        case "svg":
+            return "image/svg+xml"
+        case "pdf":
+            return "application/pdf"
+        case "doc":
+            return "application/msword"
+        case "docx":
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        case "xls":
+            return "application/vnd.ms-excel"
+        case "xlsx":
+            return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        default:
+            return "application/octet-stream"
+        }
+    }
 }
 
 extension CosmicSDKSwift {
@@ -248,7 +277,7 @@ extension CosmicSDKSwift {
         let fileData = try Data(contentsOf: fileURL)
         data.append("--\(boundary)\r\n".data(using: .utf8)!)
         data.append("Content-Disposition: form-data; name=\"media\"; filename=\"\(fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
-        data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+        data.append("Content-Type: \(mimeType(for: fileURL))\r\n\r\n".data(using: .utf8)!)
         data.append(fileData)
         data.append("\r\n".data(using: .utf8)!)
         
