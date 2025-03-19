@@ -247,17 +247,9 @@ extension CosmicSDKSwift {
         // Add file data
         let fileData = try Data(contentsOf: fileURL)
         data.append("--\(boundary)\r\n".data(using: .utf8)!)
-        data.append("Content-Disposition: form-data; name=\"media\"\r\n".data(using: .utf8)!)
-        data.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
-        
-        // Create media object matching Node SDK structure
-        let mediaObject: [String: Any] = [
-            "originalname": fileURL.lastPathComponent,
-            "buffer": fileData.base64EncodedString()
-        ]
-        
-        let mediaData = try JSONSerialization.data(withJSONObject: mediaObject)
-        data.append(mediaData)
+        data.append("Content-Disposition: form-data; name=\"media\"; filename=\"\(fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
+        data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+        data.append(fileData)
         data.append("\r\n".data(using: .utf8)!)
         
         // Add folder if provided
