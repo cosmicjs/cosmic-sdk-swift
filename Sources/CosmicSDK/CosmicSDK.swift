@@ -233,7 +233,7 @@ extension CosmicSDKSwift {
         
         // Create multipart form data
         let boundary = UUID().uuidString
-        var request = prepareRequest(endpoint, body: nil as String?, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var data = Data()
@@ -271,6 +271,10 @@ extension CosmicSDKSwift {
                         let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
+                        print("Decoding error: \(error)")
+                        if let jsonString = String(data: data, encoding: .utf8) {
+                            print("Response data: \(jsonString)")
+                        }
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
