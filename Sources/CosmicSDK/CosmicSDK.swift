@@ -229,7 +229,7 @@ extension CosmicSDKSwift {
 // MARK: - Media Operations
 extension CosmicSDKSwift {
     public func uploadMedia(fileURL: URL, folder: String? = nil, metadata: [String: Any]? = nil) async throws -> CosmicMediaSingleResponse {
-        let endpoint = CosmicEndpointProvider.API.uploadMedia
+        let endpoint = CosmicEndpointProvider.API.uploadMedia(config.bucketSlug)
         
         // Create multipart form data
         let boundary = UUID().uuidString
