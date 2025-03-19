@@ -99,7 +99,12 @@ public class CosmicSDKSwift {
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
-        config.authorizeRequest(&request)
+        // Handle authorization differently for workers.cosmicjs.com endpoints
+        if urlComponents.host == "workers.cosmicjs.com" {
+            request.setValue(config.writeKey, forHTTPHeaderField: "Authorization")
+        } else {
+            config.authorizeRequest(&request)
+        }
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -796,6 +801,12 @@ extension CosmicSDKSwift {
                 case .success(let data):
                     if let jsonString = String(data: data, encoding: .utf8) {
                         print("Raw AI response:", jsonString)
+                        // Check for error response
+                        if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data),
+                           errorResponse.status == 401 {
+                            continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "Cosmic", code: 401, userInfo: [NSLocalizedDescriptionKey: errorResponse.message])))
+                            return
+                        }
                     }
                     do {
                         let response = try JSONDecoder().decode(AITextResponse.self, from: data)

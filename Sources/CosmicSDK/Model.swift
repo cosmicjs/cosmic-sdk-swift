@@ -376,3 +376,8 @@ public struct AITextResponse: Codable {
 public struct AIImageResponse: Codable {
     public let url: String
 }
+
+public struct APIErrorResponse: Codable {
+    public let status: Int
+    public let message: String
+}
