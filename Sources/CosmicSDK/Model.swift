@@ -368,19 +368,11 @@ public struct AITextUsage: Codable {
     public let output_tokens: Int
 }
 
-public struct AITextResponseData: Codable {
+public struct AITextResponse: Codable {
     public let text: String
     public let usage: AITextUsage
 }
 
-public struct AITextResponse: Codable {
-    public let data: AITextResponseData
-}
-
-public struct AIImageResponseData: Codable {
-    public let url: String
-}
-
 public struct AIImageResponse: Codable {
-    public let data: AIImageResponseData
+    public let url: String
 }
