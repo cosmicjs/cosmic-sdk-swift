@@ -52,8 +52,8 @@ public struct CosmicEndpointProvider {
         case deleteWebhook
         
         // AI operations
-        case generateText(String)
-        case generateImage(String)
+        case generateText
+        case generateImage
     }
     
     public enum Status: String {
@@ -147,9 +147,9 @@ public struct CosmicEndpointProvider {
                 return ("/v3/buckets/\(bucket)/webhooks/\(id)", ["write_key": write_key])
                 
             // AI endpoints
-            case .generateText(let bucket):
+            case .generateText:
                 return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", ["write_key": write_key])
-            case .generateImage(let bucket):
+            case .generateImage:
                 return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", ["write_key": write_key])
             }
         }
