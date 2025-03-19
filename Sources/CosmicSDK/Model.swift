@@ -363,20 +363,16 @@ public struct CosmicErrorResponse: Codable {
 }
 
 // MARK: - AI Response Models
+public struct AITextUsage: Codable {
+    public let input_tokens: Int
+    public let output_tokens: Int
+}
+
 public struct AITextResponse: Codable {
     public let text: String
-    public let model: String?
-    public let prompt: String?
-    public let created_at: String?
-    public let tokens_used: Int?
+    public let usage: AITextUsage
 }
 
 public struct AIImageResponse: Codable {
     public let url: String
-    public let model: String?
-    public let prompt: String?
-    public let created_at: String?
-    public let size: String?
-    public let quality: String?
-    public let style: String?
 }
