@@ -100,3 +100,113 @@ struct Command: Codable {
     public let content: String?
     public let metadata: [String: AnyCodable]?
 }
+
+// MARK: - Media Models
+public struct CosmicMedia: Codable {
+    public let id: String
+    public let url: String
+    public let imgix_url: String?
+    public let original_name: String
+    public let size: Int
+    public let type: String
+    public let created_at: String
+    public let modified_at: String
+    public let folder: String?
+    public let metadata: [String: AnyCodable]?
+}
+
+public struct CosmicMediaResponse: Codable {
+    public let media: [CosmicMedia]
+    public let total: Int
+    public let limit: Int?
+    public let skip: Int?
+}
+
+public struct CosmicMediaSingleResponse: Codable {
+    public let media: CosmicMedia
+}
+
+// MARK: - Object Revision Models
+public struct ObjectRevision: Codable {
+    public let id: String
+    public let type: String
+    public let title: String
+    public let content: String?
+    public let metadata: [String: AnyCodable]?
+    public let status: String
+    public let created_at: String
+    public let modified_at: String
+}
+
+public struct ObjectRevisionsResponse: Codable {
+    public let revisions: [ObjectRevision]
+    public let total: Int
+}
+
+// MARK: - Bucket Models
+public struct BucketSettings: Codable {
+    public let title: String
+    public let description: String?
+    public let icon: String?
+    public let website: String?
+    public let objects_write_key: String?
+    public let media_write_key: String?
+    public let deploy_hook: String?
+    public let env: [String: String]?
+}
+
+public struct BucketResponse: Codable {
+    public let bucket: BucketSettings
+}
+
+// MARK: - User Models
+public struct CosmicUser: Codable {
+    public let id: String
+    public let first_name: String
+    public let last_name: String
+    public let email: String
+    public let role: String
+    public let status: String
+    public let created_at: String
+    public let modified_at: String
+}
+
+public struct UsersResponse: Codable {
+    public let users: [CosmicUser]
+    public let total: Int
+}
+
+public struct UserSingleResponse: Codable {
+    public let user: CosmicUser
+}
+
+// MARK: - Webhook Models
+public struct Webhook: Codable {
+    public let id: String
+    public let event: String
+    public let endpoint: String
+    public let created_at: String
+    public let modified_at: String
+}
+
+public struct WebhooksResponse: Codable {
+    public let webhooks: [Webhook]
+    public let total: Int
+}
+
+// MARK: - Error Models
+public enum CosmicErrorType: String, Codable {
+    case invalidCredentials = "INVALID_CREDENTIALS"
+    case notFound = "NOT_FOUND"
+    case validationError = "VALIDATION_ERROR"
+    case rateLimitExceeded = "RATE_LIMIT_EXCEEDED"
+    case serverError = "SERVER_ERROR"
+    case unknown = "UNKNOWN_ERROR"
+}
+
+public struct CosmicErrorResponse: Codable {
+    public let status: Int
+    public let type: CosmicErrorType
+    public let message: String
+    public let details: [String: AnyCodable]?
+}

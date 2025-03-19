@@ -233,3 +233,563 @@ extension CosmicSDKSwift {
         }
     }
 }
+
+// MARK: - Media Operations
+extension CosmicSDKSwift {
+    public func uploadMedia(fileURL: URL, folder: String? = nil, metadata: [String: Any]? = nil) async throws -> CosmicMediaSingleResponse {
+        let endpoint = CosmicEndpointProvider.API.uploadMedia
+        
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        var request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var data = Data()
+        // Add file data
+        data.append("--\(boundary)\r\n".data(using: .utf8)!)
+        data.append("Content-Disposition: form-data; name=\"media\"; filename=\"\(fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
+        data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+        data.append(try Data(contentsOf: fileURL))
+        data.append("\r\n".data(using: .utf8)!)
+        
+        // Add folder if provided
+        if let folder = folder {
+            data.append("--\(boundary)\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"folder\"\r\n\r\n".data(using: .utf8)!)
+            data.append("\(folder)\r\n".data(using: .utf8)!)
+        }
+        
+        // Add metadata if provided
+        if let metadata = metadata {
+            data.append("--\(boundary)\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"metadata\"\r\n\r\n".data(using: .utf8)!)
+            let metadataData = try JSONSerialization.data(withJSONObject: metadata)
+            data.append(metadataData)
+            data.append("\r\n".data(using: .utf8)!)
+        }
+        
+        data.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = data
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func getMedia(limit: Int? = nil, skip: Int? = nil, props: String? = nil) async throws -> CosmicMediaResponse {
+        let endpoint = CosmicEndpointProvider.API.getMedia
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, props: props, limit: limit?.description)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicMediaResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func getMediaObject(id: String) async throws -> CosmicMediaSingleResponse {
+        let endpoint = CosmicEndpointProvider.API.getMediaObject
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func deleteMedia(id: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.deleteMedia
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Media Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func uploadMedia(fileURL: URL, folder: String? = nil, metadata: [String: Any]? = nil, completionHandler: @escaping (Result<CosmicMediaSingleResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await uploadMedia(fileURL: fileURL, folder: folder, metadata: metadata)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func getMedia(limit: Int? = nil, skip: Int? = nil, props: String? = nil, completionHandler: @escaping (Result<CosmicMediaResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getMedia(limit: limit, skip: skip, props: props)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func getMediaObject(id: String, completionHandler: @escaping (Result<CosmicMediaSingleResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getMediaObject(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func deleteMedia(id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await deleteMedia(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - Object Operations (Additional)
+extension CosmicSDKSwift {
+    public func getObjectRevisions(id: String) async throws -> ObjectRevisionsResponse {
+        let endpoint = CosmicEndpointProvider.API.getObjectRevisions
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(ObjectRevisionsResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func searchObjects(query: String) async throws -> CosmicSDK {
+        let endpoint = CosmicEndpointProvider.API.searchObjects
+        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        let searchBody = ["query": query]
+        if let encoded = try? JSONEncoder().encode(searchBody) {
+            request.httpBody = encoded
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDK.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Object Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func getObjectRevisions(id: String, completionHandler: @escaping (Result<ObjectRevisionsResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getObjectRevisions(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func searchObjects(query: String, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await searchObjects(query: query)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - Bucket Operations
+extension CosmicSDKSwift {
+    public func getBucket() async throws -> BucketResponse {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(BucketResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func updateBucketSettings(settings: BucketSettings) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.updateBucketSettings
+        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        if let encoded = try? JSONEncoder().encode(settings) {
+            request.httpBody = encoded
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Bucket Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func getBucket(completionHandler: @escaping (Result<BucketResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getBucket()
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func updateBucketSettings(settings: BucketSettings, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await updateBucketSettings(settings: settings)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - User Operations
+extension CosmicSDKSwift {
+    public func getUsers() async throws -> UsersResponse {
+        let endpoint = CosmicEndpointProvider.API.getUsers
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(UsersResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func getUser(id: String) async throws -> UserSingleResponse {
+        let endpoint = CosmicEndpointProvider.API.getUser
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(UserSingleResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func addUser(email: String, role: String) async throws -> UserSingleResponse {
+        let endpoint = CosmicEndpointProvider.API.addUser
+        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        let userBody = ["email": email, "role": role]
+        if let encoded = try? JSONEncoder().encode(userBody) {
+            request.httpBody = encoded
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(UserSingleResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func deleteUser(id: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.deleteUser
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - User Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func getUsers(completionHandler: @escaping (Result<UsersResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getUsers()
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func getUser(id: String, completionHandler: @escaping (Result<UserSingleResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getUser(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func addUser(email: String, role: String, completionHandler: @escaping (Result<UserSingleResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await addUser(email: email, role: role)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func deleteUser(id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await deleteUser(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - Webhook Operations
+extension CosmicSDKSwift {
+    public func getWebhooks() async throws -> WebhooksResponse {
+        let endpoint = CosmicEndpointProvider.API.getWebhooks
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(WebhooksResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func addWebhook(event: String, endpoint: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.addWebhook
+        var request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        let webhookBody = ["event": event, "endpoint": endpoint]
+        if let encoded = try? JSONEncoder().encode(webhookBody) {
+            request.httpBody = encoded
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func deleteWebhook(id: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.deleteWebhook
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Webhook Operations (Completion Handlers)
+extension CosmicSDKSwift {
+    public func getWebhooks(completionHandler: @escaping (Result<WebhooksResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await getWebhooks()
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func addWebhook(event: String, endpoint: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await addWebhook(event: event, endpoint: endpoint)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func deleteWebhook(id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await deleteWebhook(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
