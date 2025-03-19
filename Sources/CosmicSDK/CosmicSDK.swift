@@ -814,9 +814,9 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations
 extension CosmicSDKSwift {
-    public func generateText(prompt: String, model: String = "gpt-4") async throws -> AITextResponse {
+    public func generateText(prompt: String) async throws -> AITextResponse {
         let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
-        let body = ["prompt": prompt, "model": model]
+        let body = ["prompt": prompt]
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -844,11 +844,10 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid") async throws -> AIImageResponse {
+    public func generateImage(prompt: String, size: String = "1024x1024", quality: String = "standard", style: String = "vivid") async throws -> AIImageResponse {
         let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
         let body = [
             "prompt": prompt,
-            "model": model,
             "size": size,
             "quality": quality,
             "style": style
@@ -875,10 +874,10 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations (Completion Handlers)
 extension CosmicSDKSwift {
-    public func generateText(prompt: String, model: String = "gpt-4", completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
+    public func generateText(prompt: String, completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await generateText(prompt: prompt, model: model)
+                let result = try await generateText(prompt: prompt)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
@@ -886,10 +885,10 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid", completionHandler: @escaping (Result<AIImageResponse, CosmicError>) -> Void) {
+    public func generateImage(prompt: String, size: String = "1024x1024", quality: String = "standard", style: String = "vivid", completionHandler: @escaping (Result<AIImageResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await generateImage(prompt: prompt, model: model, size: size, quality: quality, style: style)
+                let result = try await generateImage(prompt: prompt, size: size, quality: quality, style: style)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
