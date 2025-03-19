@@ -107,7 +107,12 @@ public class CosmicSDKSwift {
         // Set authorization header based on the endpoint
         if endpoint.requiresWriteKey {
             if let writeKey = config.writeKey {
-                request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                switch endpoint {
+                case .generateText, .generateImage:
+                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                default:
+                    request.setValue(writeKey, forHTTPHeaderField: "Authorization")
+                }
             }
         }
         
