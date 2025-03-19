@@ -94,7 +94,10 @@ public class CosmicSDKSwift {
         
         // Add query parameters
         var finalComponents = urlComponents
-        finalComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
+        let queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
+        if !queryItems.isEmpty {
+            finalComponents.queryItems = queryItems
+        }
         
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
