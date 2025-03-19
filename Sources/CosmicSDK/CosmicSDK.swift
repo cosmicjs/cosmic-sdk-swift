@@ -276,14 +276,14 @@ extension CosmicSDKSwift {
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("Raw AI response:", jsonString)
+                    }
                     do {
                         let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error: \(error)")
-                        if let jsonString = String(data: data, encoding: .utf8) {
-                            print("Response data: \(jsonString)")
-                        }
+                        print("Decoding error:", error)
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -794,10 +794,14 @@ extension CosmicSDKSwift {
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("Raw AI response:", jsonString)
+                    }
                     do {
                         let response = try JSONDecoder().decode(AITextResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
+                        print("Decoding error:", error)
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -822,10 +826,14 @@ extension CosmicSDKSwift {
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("Raw AI response:", jsonString)
+                    }
                     do {
                         let response = try JSONDecoder().decode(AIImageResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
+                        print("Decoding error:", error)
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
