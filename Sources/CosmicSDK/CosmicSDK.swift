@@ -690,9 +690,9 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func addWebhook(event: String, endpoint: String) async throws -> SuccessResponse {
+    public func addWebhook(event: String, webhookEndpoint: String) async throws -> SuccessResponse {
         let endpoint = CosmicEndpointProvider.API.addWebhook
-        let webhookBody = ["event": event, "endpoint": endpoint] as [String: String]
+        let webhookBody = ["event": event, "endpoint": webhookEndpoint] as [String: String]
         var request = prepareRequest(endpoint, body: webhookBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -747,10 +747,10 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func addWebhook(event: String, endpoint: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func addWebhook(event: String, webhookEndpoint: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await addWebhook(event: event, endpoint: endpoint)
+                let result = try await addWebhook(event: event, webhookEndpoint: webhookEndpoint)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
