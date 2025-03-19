@@ -31,7 +31,7 @@ public class CosmicSDKSwift {
         
         /// Initialiser
         /// - Parameter session: the session to use for network requests.
-        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, bucketSlug: String, readKey: String, writeKey: String, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
+        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, bucketSlug: String, readKey: String, writeKey: String?, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
             self.baseURL = baseURL
             self.endpointProvider = endpointPrivider
             self.authorizeRequest = authorizeRequest
@@ -46,9 +46,9 @@ public class CosmicSDKSwift {
         let authorizeRequest: (inout URLRequest) -> Void
         let bucketSlug: String
         let readKey: String
-        let writeKey: String
+        let writeKey: String?
         
-        public static func createBucketClient(bucketSlug: String, readKey: String, writeKey: String) -> Self {
+        public static func createBucketClient(bucketSlug: String, readKey: String, writeKey: String?) -> Self {
             .init(baseURL: "https://api.cosmicjs.com",
                   endpointPrivider: CosmicEndpointProvider(source: .cosmic),
                   bucketSlug: bucketSlug,
@@ -56,7 +56,9 @@ public class CosmicSDKSwift {
                   writeKey: writeKey,
                   session: .shared,
                   authorizeRequest: { request in
-                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    if let writeKey = writeKey {
+                        request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    }
             })
         }
     }
