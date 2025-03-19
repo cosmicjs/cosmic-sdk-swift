@@ -99,8 +99,8 @@ public struct CosmicEndpointProvider {
             case .insertOne:
                 return ("/v3/buckets/\(bucket)/objects/", [:])
             // Media endpoints
-            case .uploadMedia:
-                return ("/v3/buckets/\(bucket)/media/insert-one", [:])
+            case .uploadMedia(let bucket):
+                return "/v3/buckets/\(bucket)/media"
             case .getMedia:
                 return ("/v3/buckets/\(bucket)/media", ["read_key": read_key, "limit": limit, "props": props])
             case .getMediaObject, .deleteMedia:
