@@ -148,9 +148,9 @@ public struct CosmicEndpointProvider {
                 
             // AI endpoints
             case .generateText:
-                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", ["write_key": write_key])
+                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", [:])
             case .generateImage:
-                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", ["write_key": write_key])
+                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", [:])
             }
         }
     }
