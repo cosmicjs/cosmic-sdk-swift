@@ -786,7 +786,7 @@ extension CosmicSDKSwift {
 // MARK: - AI Operations
 extension CosmicSDKSwift {
     public func generateText(prompt: String, model: String = "gpt-4") async throws -> AITextResponse {
-        let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
+        let endpoint = CosmicEndpointProvider.API.generateText()
         let body = ["prompt": prompt, "model": model]
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
@@ -808,7 +808,7 @@ extension CosmicSDKSwift {
     }
     
     public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid") async throws -> AIImageResponse {
-        let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
+        let endpoint = CosmicEndpointProvider.API.generateImage()
         let body = [
             "prompt": prompt,
             "model": model,
