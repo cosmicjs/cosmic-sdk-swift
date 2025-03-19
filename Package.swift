@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "CosmicSDK",
     platforms: [
-        .macOS(.v11),
-        .iOS(.v14),
-        .tvOS(.v14),
-        .watchOS(.v7)
+        .macOS(.v12),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .watchOS(.v8)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.

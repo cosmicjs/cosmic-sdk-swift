@@ -78,7 +78,7 @@ public class CosmicSDKSwift {
         task.resume()
     }
    
-    private func prepareRequest<BodyType: Encodable>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest {
+    private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest where BodyType: Encodable {
         let requestURL = URL(string: config.baseURL)!
         var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
 
@@ -105,6 +105,11 @@ public class CosmicSDKSwift {
         
         return request
     }
+
+    // Helper method for requests without body
+    private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest {
+        return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status)
+    }
 }
 
 extension CosmicSDKSwift {
@@ -122,7 +127,7 @@ extension CosmicSDKSwift {
     
     public func find(type: String, props: String? = nil, limit: String? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit, sort: sort, status: status)
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit, sort: sort, status: status)
         
         makeRequest(request: request) { result in
             switch result {
@@ -141,7 +146,7 @@ extension CosmicSDKSwift {
     
     public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -202,7 +207,7 @@ extension CosmicSDKSwift {
     
     public func deleteOne(type: String, id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.deleteOne
-        let request = prepareRequest(endpoint, body: nil as AnyCodable?, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
                 
         print(request)
         makeRequest(request: request) { result in
