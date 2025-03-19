@@ -102,12 +102,9 @@ public class CosmicSDKSwift {
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
-        // Handle authorization differently for workers.cosmicjs.com endpoints
-        if urlComponents.host == "workers.cosmicjs.com" {
-            print("Using write key:", config.writeKey)
-            request.setValue("Bearer \(config.writeKey)", forHTTPHeaderField: "Authorization")
-        } else {
-            config.authorizeRequest(&request)
+        // Set authorization header based on the endpoint
+        if let writeKey = config.writeKey {
+            request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
         }
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -794,16 +791,10 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations
 extension CosmicSDKSwift {
-    public func generateText(prompt: String) async throws -> AITextResponse {
+    public func generateText(prompt: String, max_tokens: Int? = nil) async throws -> AITextResponse {
         let endpoint = CosmicEndpointProvider.API.generateText
-        let body = ["prompt": prompt]
+        let body = AITextRequestBody(prompt: prompt, max_tokens: max_tokens)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
-        
-        print("AI Request URL:", request.url?.absoluteString ?? "")
-        print("AI Request Headers:", request.allHTTPHeaderFields ?? [:])
-        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
-            print("AI Request Body:", bodyString)
-        }
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -837,18 +828,18 @@ extension CosmicSDKSwift {
         let body = AIImageRequestBody(prompt: prompt, folder: folder, alt_text: alt_text, metadata: metadata)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
-        print("AI Request URL:", request.url?.absoluteString ?? "")
-        print("AI Request Headers:", request.allHTTPHeaderFields ?? [:])
-        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
-            print("AI Request Body:", bodyString)
-        }
-        
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
                     if let jsonString = String(data: data, encoding: .utf8) {
                         print("Raw AI response:", jsonString)
+                        // Check for error response
+                        if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data),
+                           errorResponse.status == 401 {
+                            continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "Cosmic", code: 401, userInfo: [NSLocalizedDescriptionKey: errorResponse.message])))
+                            return
+                        }
                     }
                     do {
                         let response = try JSONDecoder().decode(AIImageResponse.self, from: data)
@@ -867,10 +858,10 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations (Completion Handlers)
 extension CosmicSDKSwift {
-    public func generateText(prompt: String, completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
+    public func generateText(prompt: String, max_tokens: Int? = nil, completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await generateText(prompt: prompt)
+                let result = try await generateText(prompt: prompt, max_tokens: max_tokens)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))

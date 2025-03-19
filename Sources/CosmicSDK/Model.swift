@@ -395,3 +395,13 @@ public struct AIImageRequestBody: Codable {
         self.metadata = metadata?.mapValues { AnyCodable(value: $0) }
     }
 }
+
+public struct AITextRequestBody: Codable {
+    public let prompt: String
+    public let max_tokens: Int?
+    
+    public init(prompt: String, max_tokens: Int? = nil) {
+        self.prompt = prompt
+        self.max_tokens = max_tokens
+    }
+}

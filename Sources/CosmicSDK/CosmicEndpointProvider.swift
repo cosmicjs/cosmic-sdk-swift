@@ -27,8 +27,8 @@ public struct CosmicEndpointProvider {
         case deleteOne
         
         // Media operations
-        case uploadMedia(String)
         case getMedia
+        case uploadMedia(String)
         case getMediaObject
         case deleteMedia
         
@@ -54,6 +54,17 @@ public struct CosmicEndpointProvider {
         // AI operations
         case generateText
         case generateImage
+        
+        var requiresWriteKey: Bool {
+            switch self {
+            case .insertOne, .updateOne, .deleteOne, .uploadMedia, .deleteMedia,
+                 .updateBucketSettings, .addUser, .deleteUser, .addWebhook, .deleteWebhook,
+                 .generateText, .generateImage:
+                return true
+            default:
+                return false
+            }
+        }
     }
     
     public enum Status: String {
@@ -84,74 +95,78 @@ public struct CosmicEndpointProvider {
         }
     }
     
-    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
-        switch source {
-        case .cosmic:
-            switch api {
-            // Object endpoints
-            case .find:
-                return ("/v3/buckets/\(bucket)/objects", ["read_key": read_key, "type": type, "limit": limit, "props": props, "status": status?.rawValue, "sort": sort?.rawValue])
-            case .findOne:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)", ["read_key": read_key, "props": props, "status": status?.rawValue])
-            case .insertOne:
-                return ("/v3/buckets/\(bucket)/objects", ["write_key": write_key])
-            case .updateOne:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)", ["write_key": write_key])
-            case .deleteOne:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)", ["write_key": write_key])
-                
-            // Media endpoints
-            case .uploadMedia(let bucket):
-                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/media", ["write_key": write_key])
-            case .getMedia:
-                return ("/v3/buckets/\(bucket)/media", ["read_key": read_key, "limit": limit, "props": props])
-            case .getMediaObject, .deleteMedia:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/media/\(id)", ["read_key": read_key])
-                
-            // Object operations (additional)
-            case .getObjectRevisions:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)/revisions", ["read_key": read_key])
-            case .searchObjects:
-                return ("/v3/buckets/\(bucket)/objects/search", ["read_key": read_key])
-                
-            // Bucket operations
-            case .getBucket:
-                return ("/v3/buckets/\(bucket)", ["read_key": read_key])
-            case .updateBucketSettings:
-                return ("/v3/buckets/\(bucket)/settings", ["write_key": write_key])
-                
-            // User operations
-            case .getUsers:
-                return ("/v3/buckets/\(bucket)/users", ["read_key": read_key])
-            case .getUser:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/users/\(id)", ["read_key": read_key])
-            case .addUser:
-                return ("/v3/buckets/\(bucket)/users", ["write_key": write_key])
-            case .deleteUser:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/users/\(id)", ["write_key": write_key])
-                
-            // Webhook operations
-            case .getWebhooks:
-                return ("/v3/buckets/\(bucket)/webhooks", ["read_key": read_key])
-            case .addWebhook:
-                return ("/v3/buckets/\(bucket)/webhooks", ["write_key": write_key])
-            case .deleteWebhook:
-                guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/webhooks/\(id)", ["write_key": write_key])
-                
-            // AI endpoints
-            case .generateText:
-                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", [:])
-            case .generateImage:
-                return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", [:])
-            }
+    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil) -> (String, [String: String]) {
+        var parameters: [String: String] = [:]
+        
+        if let props = props {
+            parameters["props"] = props
+        }
+        if let limit = limit {
+            parameters["limit"] = limit
+        }
+        if let status = status {
+            parameters["status"] = status.rawValue
+        }
+        if let sort = sort {
+            parameters["sort"] = sort.rawValue
+        }
+        
+        switch api {
+        case .find:
+            parameters["type"] = type
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/objects", parameters)
+        case .findOne:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/objects/\(id ?? "")", parameters)
+        case .insertOne:
+            return ("/v3/buckets/\(bucket)/objects", parameters)
+        case .updateOne:
+            return ("/v3/buckets/\(bucket)/objects/\(id ?? "")", parameters)
+        case .deleteOne:
+            return ("/v3/buckets/\(bucket)/objects/\(id ?? "")", parameters)
+        case .getMedia:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/media", parameters)
+        case .uploadMedia(let bucket):
+            return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/media/insert-one", parameters)
+        case .getMediaObject:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/media/\(id ?? "")", parameters)
+        case .deleteMedia:
+            return ("/v3/buckets/\(bucket)/media/\(id ?? "")", parameters)
+        case .getObjectRevisions:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/objects/\(id ?? "")/revisions", parameters)
+        case .searchObjects:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/objects/search", parameters)
+        case .getBucket:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)", parameters)
+        case .updateBucketSettings:
+            return ("/v3/buckets/\(bucket)/settings", parameters)
+        case .getUsers:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/users", parameters)
+        case .getUser:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/users/\(id ?? "")", parameters)
+        case .addUser:
+            return ("/v3/buckets/\(bucket)/users", parameters)
+        case .deleteUser:
+            return ("/v3/buckets/\(bucket)/users/\(id ?? "")", parameters)
+        case .getWebhooks:
+            parameters["read_key"] = read_key
+            return ("/v3/buckets/\(bucket)/webhooks", parameters)
+        case .addWebhook:
+            return ("/v3/buckets/\(bucket)/webhooks", parameters)
+        case .deleteWebhook:
+            return ("/v3/buckets/\(bucket)/webhooks/\(id ?? "")", parameters)
+        case .generateText:
+            return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", parameters)
+        case .generateImage:
+            return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", parameters)
         }
     }
 }
