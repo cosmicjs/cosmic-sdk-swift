@@ -381,3 +381,17 @@ public struct APIErrorResponse: Codable {
     public let status: Int
     public let message: String
 }
+
+public struct AIImageRequestBody: Codable {
+    public let prompt: String
+    public let folder: String?
+    public let alt_text: String?
+    public let metadata: [String: AnyCodable]?
+    
+    public init(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil) {
+        self.prompt = prompt
+        self.folder = folder
+        self.alt_text = alt_text
+        self.metadata = metadata?.mapValues { AnyCodable(value: $0) }
+    }
+}
