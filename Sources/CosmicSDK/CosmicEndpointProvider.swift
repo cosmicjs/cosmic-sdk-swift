@@ -15,7 +15,7 @@ public struct CosmicEndpointProvider {
         case updateOne
         case deleteOne
         // Media operations
-        case uploadMedia
+        case uploadMedia(String)
         case getMedia
         case getMediaObject
         case deleteMedia
@@ -100,7 +100,7 @@ public struct CosmicEndpointProvider {
                 return ("/v3/buckets/\(bucket)/objects/", [:])
             // Media endpoints
             case .uploadMedia(let bucket):
-                return "/v3/buckets/\(bucket)/media"
+                return ("/v3/buckets/\(bucket)/media", [:])
             case .getMedia:
                 return ("/v3/buckets/\(bucket)/media", ["read_key": read_key, "limit": limit, "props": props])
             case .getMediaObject, .deleteMedia:
