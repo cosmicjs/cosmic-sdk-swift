@@ -796,7 +796,7 @@ extension CosmicSDKSwift {
 // MARK: - AI Operations
 extension CosmicSDKSwift {
     public func generateText(prompt: String, max_tokens: Int? = nil) async throws -> AITextResponse {
-        let endpoint = CosmicEndpointProvider.API.generateText
+        let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
         let body = AITextRequestBody(prompt: prompt, max_tokens: max_tokens)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
@@ -828,7 +828,7 @@ extension CosmicSDKSwift {
     }
     
     public func generateImage(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil) async throws -> AIImageResponse {
-        let endpoint = CosmicEndpointProvider.API.generateImage
+        let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
         let body = AIImageRequestBody(prompt: prompt, folder: folder, alt_text: alt_text, metadata: metadata)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         

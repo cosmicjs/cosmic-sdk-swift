@@ -52,8 +52,8 @@ public struct CosmicEndpointProvider {
         case deleteWebhook
         
         // AI operations
-        case generateText
-        case generateImage
+        case generateText(String)
+        case generateImage(String)
         
         var requiresWriteKey: Bool {
             switch self {
@@ -163,9 +163,9 @@ public struct CosmicEndpointProvider {
             return ("/v3/buckets/\(bucket)/webhooks", parameters)
         case .deleteWebhook:
             return ("/v3/buckets/\(bucket)/webhooks/\(id ?? "")", parameters)
-        case .generateText:
+        case .generateText(let bucket):
             return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", parameters)
-        case .generateImage:
+        case .generateImage(let bucket):
             return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", parameters)
         }
     }
