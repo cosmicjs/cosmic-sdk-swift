@@ -107,14 +107,7 @@ public class CosmicSDKSwift {
         // Set authorization header based on the endpoint
         if endpoint.requiresWriteKey {
             if let writeKey = config.writeKey {
-                switch endpoint {
-                case .uploadMedia, .generateText, .generateImage:
-                    // For media upload and AI endpoints, we need the write key in the query parameters
-                    // The authorization is handled by the parameters already
-                    break
-                default:
-                    request.setValue(writeKey, forHTTPHeaderField: "Authorization")
-                }
+                request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
             }
         }
         
@@ -803,15 +796,9 @@ extension CosmicSDKSwift {
 // MARK: - AI Operations
 extension CosmicSDKSwift {
     public func generateText(prompt: String, max_tokens: Int? = nil) async throws -> AITextResponse {
-        let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
+        let endpoint = CosmicEndpointProvider.API.generateText
         let body = AITextRequestBody(prompt: prompt, max_tokens: max_tokens)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
-        
-        print("AI Request URL:", request.url?.absoluteString ?? "")
-        print("AI Request Headers:", request.allHTTPHeaderFields ?? [:])
-        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
-            print("AI Request Body:", bodyString)
-        }
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -841,7 +828,7 @@ extension CosmicSDKSwift {
     }
     
     public func generateImage(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil) async throws -> AIImageResponse {
-        let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
+        let endpoint = CosmicEndpointProvider.API.generateImage
         let body = AIImageRequestBody(prompt: prompt, folder: folder, alt_text: alt_text, metadata: metadata)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
