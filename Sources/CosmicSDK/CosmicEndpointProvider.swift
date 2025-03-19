@@ -167,8 +167,14 @@ public struct CosmicEndpointProvider {
         case .deleteWebhook:
             return ("/v3/buckets/\(bucket)/webhooks/\(id ?? "")", parameters)
         case .generateText(let bucket):
+            if let write_key = write_key {
+                parameters["write_key"] = write_key
+            }
             return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/text", parameters)
         case .generateImage(let bucket):
+            if let write_key = write_key {
+                parameters["write_key"] = write_key
+            }
             return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/ai/image", parameters)
         }
     }

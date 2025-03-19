@@ -108,8 +108,10 @@ public class CosmicSDKSwift {
         if endpoint.requiresWriteKey {
             if let writeKey = config.writeKey {
                 switch endpoint {
-                case .generateText, .generateImage:
-                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                case .uploadMedia, .generateText, .generateImage:
+                    // For media upload and AI endpoints, we need the write key in the query parameters
+                    // The authorization is handled by the parameters already
+                    break
                 default:
                     request.setValue(writeKey, forHTTPHeaderField: "Authorization")
                 }
