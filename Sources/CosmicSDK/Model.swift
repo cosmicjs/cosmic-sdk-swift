@@ -177,32 +177,53 @@ public struct Object: Codable {
     public let slug: String?
     public let title: String
     public let content: String?
+    public let bucket: String?
     public let created_at: String?
+    public let created_by: String?
     public let modified_at: String?
+    public let modified_by: String?
     public let status: String?
     public let published_at: String?
+    public let publish_at: String?
+    public let unpublish_at: String?
     public let type: String?
+    public let locale: String?
+    public let thumbnail: String?
     public let metafields: [Metafield]?
     
     init(id: String? = nil, 
          slug: String? = nil, 
          title: String, 
-         content: String? = nil, 
-         created_at: String? = nil, 
-         modified_at: String? = nil, 
-         status: String? = nil, 
-         published_at: String? = nil, 
-         type: String? = nil, 
+         content: String? = nil,
+         bucket: String? = nil,
+         created_at: String? = nil,
+         created_by: String? = nil,
+         modified_at: String? = nil,
+         modified_by: String? = nil,
+         status: String? = nil,
+         published_at: String? = nil,
+         publish_at: String? = nil,
+         unpublish_at: String? = nil,
+         type: String? = nil,
+         locale: String? = nil,
+         thumbnail: String? = nil,
          metafields: [Metafield]? = nil) {
         self.id = id
         self.slug = slug
         self.title = title
         self.content = content
+        self.bucket = bucket
         self.created_at = created_at
+        self.created_by = created_by
         self.modified_at = modified_at
+        self.modified_by = modified_by
         self.status = status
         self.published_at = published_at
+        self.publish_at = publish_at
+        self.unpublish_at = unpublish_at
         self.type = type
+        self.locale = locale
+        self.thumbnail = thumbnail
         self.metafields = metafields
     }
 }
@@ -223,7 +244,9 @@ public struct CosmicMedia: Codable {
     public let type: String
     public let bucket: String
     public let created_at: String
+    public let created_by: String?
     public let folder: String?
+    public let status: String?
     public let alt_text: String?
     public let width: Int?
     public let height: Int?
@@ -240,20 +263,18 @@ public struct CosmicMediaResponse: Codable {
 }
 
 public struct CosmicMediaSingleResponse: Codable {
-    public let id: String
-    public let name: String
-    public let original_name: String
-    public let size: Int
-    public let type: String
-    public let bucket: String
-    public let created_at: String
-    public let folder: String?
-    public let alt_text: String?
-    public let width: Int?
-    public let height: Int?
-    public let url: String
-    public let imgix_url: String?
-    public let metadata: [String: AnyCodable]?
+    public let message: String?
+    public let media: CosmicMedia?
+    
+    private enum CodingKeys: String, CodingKey {
+        case message, media
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        message = try container.decodeIfPresent(String.self, forKey: .message)
+        media = try container.decodeIfPresent(CosmicMedia.self, forKey: .media)
+    }
 }
 
 // MARK: - Object Revision Models

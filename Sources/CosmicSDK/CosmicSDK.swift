@@ -237,12 +237,19 @@ extension CosmicSDKSwift {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var data = Data()
+        
         // Add file data
+        let fileData = try Data(contentsOf: fileURL)
         data.append("--\(boundary)\r\n".data(using: .utf8)!)
         data.append("Content-Disposition: form-data; name=\"media\"; filename=\"\(fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
         data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
-        data.append(try Data(contentsOf: fileURL))
+        data.append(fileData)
         data.append("\r\n".data(using: .utf8)!)
+        
+        // Add originalname
+        data.append("--\(boundary)\r\n".data(using: .utf8)!)
+        data.append("Content-Disposition: form-data; name=\"originalname\"\r\n\r\n".data(using: .utf8)!)
+        data.append("\(fileURL.lastPathComponent)\r\n".data(using: .utf8)!)
         
         // Add folder if provided
         if let folder = folder {
@@ -254,7 +261,8 @@ extension CosmicSDKSwift {
         // Add metadata if provided
         if let metadata = metadata {
             data.append("--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"metadata\"\r\n\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"metadata\"\r\n".data(using: .utf8)!)
+            data.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
             let metadataData = try JSONSerialization.data(withJSONObject: metadata)
             data.append(metadataData)
             data.append("\r\n".data(using: .utf8)!)
