@@ -800,6 +800,12 @@ extension CosmicSDKSwift {
         let body = AITextRequestBody(prompt: prompt, max_tokens: max_tokens)
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
+        print("AI Request URL:", request.url?.absoluteString ?? "")
+        print("AI Request Headers:", request.allHTTPHeaderFields ?? [:])
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            print("AI Request Body:", bodyString)
+        }
+        
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
                 switch result {

@@ -110,6 +110,9 @@ public struct CosmicEndpointProvider {
         if let sort = sort {
             parameters["sort"] = sort.rawValue
         }
+        if let write_key = write_key, api.requiresWriteKey {
+            parameters["write_key"] = write_key
+        }
         
         switch api {
         case .find:
