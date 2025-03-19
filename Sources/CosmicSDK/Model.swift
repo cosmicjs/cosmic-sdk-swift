@@ -137,8 +137,8 @@ public struct Metafield: Codable {
         repeater_fields = try container.decodeIfPresent([RepeaterField].self, forKey: .repeater_fields)
         
         // Handle value based on type
-        if let valueContainer = try? container.nestedUnkeyedContainer(forKey: .value),
-           type == .objects || type == .files || type == .checkBoxes {
+        if type == .objects || type == .files || type == .checkBoxes,
+           var valueContainer = try? container.nestedUnkeyedContainer(forKey: .value) {
             var array: [AnyCodable] = []
             while !valueContainer.isAtEnd {
                 if let value = try? valueContainer.decode(AnyCodable.self) {
