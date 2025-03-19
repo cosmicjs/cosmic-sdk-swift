@@ -376,32 +376,3 @@ public struct AITextResponse: Codable {
 public struct AIImageResponse: Codable {
     public let url: String
 }
-
-public struct APIErrorResponse: Codable {
-    public let status: Int
-    public let message: String
-}
-
-public struct AIImageRequestBody: Codable {
-    public let prompt: String
-    public let folder: String?
-    public let alt_text: String?
-    public let metadata: [String: AnyCodable]?
-    
-    public init(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil) {
-        self.prompt = prompt
-        self.folder = folder
-        self.alt_text = alt_text
-        self.metadata = metadata?.mapValues { AnyCodable(value: $0) }
-    }
-}
-
-public struct AITextRequestBody: Codable {
-    public let prompt: String
-    public let max_tokens: Int?
-    
-    public init(prompt: String, max_tokens: Int? = nil) {
-        self.prompt = prompt
-        self.max_tokens = max_tokens
-    }
-}

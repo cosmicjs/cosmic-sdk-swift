@@ -31,7 +31,7 @@ public class CosmicSDKSwift {
         
         /// Initialiser
         /// - Parameter session: the session to use for network requests.
-        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, bucketSlug: String, readKey: String, writeKey: String?, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
+        public init(baseURL: String, endpointPrivider: CosmicEndpointProvider, bucketSlug: String, readKey: String, writeKey: String, session: URLSession, authorizeRequest: @escaping (inout URLRequest) -> Void) {
             self.baseURL = baseURL
             self.endpointProvider = endpointPrivider
             self.authorizeRequest = authorizeRequest
@@ -46,9 +46,9 @@ public class CosmicSDKSwift {
         let authorizeRequest: (inout URLRequest) -> Void
         let bucketSlug: String
         let readKey: String
-        let writeKey: String?
+        let writeKey: String
         
-        public static func createBucketClient(bucketSlug: String, readKey: String, writeKey: String?) -> Self {
+        public static func createBucketClient(bucketSlug: String, readKey: String, writeKey: String) -> Self {
             .init(baseURL: "https://api.cosmicjs.com",
                   endpointPrivider: CosmicEndpointProvider(source: .cosmic),
                   bucketSlug: bucketSlug,
@@ -56,9 +56,7 @@ public class CosmicSDKSwift {
                   writeKey: writeKey,
                   session: .shared,
                   authorizeRequest: { request in
-                    if let writeKey = writeKey {
-                        request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
-                    }
+                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
             })
         }
     }
@@ -96,20 +94,12 @@ public class CosmicSDKSwift {
         
         // Add query parameters
         var finalComponents = urlComponents
-        let queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
-        if !queryItems.isEmpty {
-            finalComponents.queryItems = queryItems
-        }
+        finalComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
         
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
-        // Set authorization header based on the endpoint
-        if endpoint.requiresWriteKey {
-            if let writeKey = config.writeKey {
-                request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
-            }
-        }
+        config.authorizeRequest(&request)
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -286,14 +276,14 @@ extension CosmicSDKSwift {
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("Raw AI response:", jsonString)
-                    }
                     do {
                         let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error:", error)
+                        print("Decoding error: \(error)")
+                        if let jsonString = String(data: data, encoding: .utf8) {
+                            print("Response data: \(jsonString)")
+                        }
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -795,29 +785,19 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations
 extension CosmicSDKSwift {
-    public func generateText(prompt: String, max_tokens: Int? = nil) async throws -> AITextResponse {
-        let endpoint = CosmicEndpointProvider.API.generateText
-        let body = AITextRequestBody(prompt: prompt, max_tokens: max_tokens)
+    public func generateText(prompt: String, model: String = "gpt-4") async throws -> AITextResponse {
+        let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
+        let body = ["prompt": prompt, "model": model]
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("Raw AI response:", jsonString)
-                        // Check for error response
-                        if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data),
-                           errorResponse.status == 401 {
-                            continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "Cosmic", code: 401, userInfo: [NSLocalizedDescriptionKey: errorResponse.message])))
-                            return
-                        }
-                    }
                     do {
                         let response = try JSONDecoder().decode(AITextResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error:", error)
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -827,29 +807,25 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func generateImage(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil) async throws -> AIImageResponse {
-        let endpoint = CosmicEndpointProvider.API.generateImage
-        let body = AIImageRequestBody(prompt: prompt, folder: folder, alt_text: alt_text, metadata: metadata)
+    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid") async throws -> AIImageResponse {
+        let endpoint = CosmicEndpointProvider.API.generateImage(config.bucketSlug)
+        let body = [
+            "prompt": prompt,
+            "model": model,
+            "size": size,
+            "quality": quality,
+            "style": style
+        ]
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("Raw AI response:", jsonString)
-                        // Check for error response
-                        if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data),
-                           errorResponse.status == 401 {
-                            continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "Cosmic", code: 401, userInfo: [NSLocalizedDescriptionKey: errorResponse.message])))
-                            return
-                        }
-                    }
                     do {
                         let response = try JSONDecoder().decode(AIImageResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error:", error)
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -862,10 +838,10 @@ extension CosmicSDKSwift {
 
 // MARK: - AI Operations (Completion Handlers)
 extension CosmicSDKSwift {
-    public func generateText(prompt: String, max_tokens: Int? = nil, completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
+    public func generateText(prompt: String, model: String = "gpt-4", completionHandler: @escaping (Result<AITextResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await generateText(prompt: prompt, max_tokens: max_tokens)
+                let result = try await generateText(prompt: prompt, model: model)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
@@ -873,10 +849,10 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func generateImage(prompt: String, folder: String? = nil, alt_text: String? = nil, metadata: [String: Any]? = nil, completionHandler: @escaping (Result<AIImageResponse, CosmicError>) -> Void) {
+    public func generateImage(prompt: String, model: String = "dall-e-3", size: String = "1024x1024", quality: String = "standard", style: String = "vivid", completionHandler: @escaping (Result<AIImageResponse, CosmicError>) -> Void) {
         Task {
             do {
-                let result = try await generateImage(prompt: prompt, folder: folder, alt_text: alt_text, metadata: metadata)
+                let result = try await generateImage(prompt: prompt, model: model, size: size, quality: quality, style: style)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
