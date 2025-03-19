@@ -81,23 +81,22 @@ public class CosmicSDKSwift {
     private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest where BodyType: Encodable {
         let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, status: status, sort: sort)
         
-        // Check if the path is a full URL
-        let requestURL: URL
+        // Create URL components based on whether we have a full URL or just a path
+        let urlComponents: URLComponents
         if pathAndParameters.0.starts(with: "http") {
-            requestURL = URL(string: pathAndParameters.0)!
+            urlComponents = URLComponents(string: pathAndParameters.0)!
         } else {
-            requestURL = URL(string: config.baseURL)!
-            var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
-            urlComponents.path = pathAndParameters.0
-            requestURL = urlComponents.url!
+            let baseURL = URL(string: config.baseURL)!
+            var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
+            components.path = pathAndParameters.0
+            urlComponents = components
         }
         
-        var urlComponents = URLComponents(url: requestURL, resolvingAgainstBaseURL: false)!
+        // Add query parameters
+        var finalComponents = urlComponents
+        finalComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
         
-        // Create the URLQueryItems
-        urlComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
-        
-        var request = URLRequest(url: urlComponents.url!)
+        var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
         config.authorizeRequest(&request)
