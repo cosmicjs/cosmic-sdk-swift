@@ -101,7 +101,7 @@ public class CosmicSDKSwift {
         
         // Handle authorization differently for workers.cosmicjs.com endpoints
         if urlComponents.host == "workers.cosmicjs.com" {
-            request.setValue(config.writeKey, forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(config.writeKey)", forHTTPHeaderField: "Authorization")
         } else {
             config.authorizeRequest(&request)
         }
@@ -794,6 +794,12 @@ extension CosmicSDKSwift {
         let endpoint = CosmicEndpointProvider.API.generateText
         let body = ["prompt": prompt, "model": model]
         var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        
+        print("AI Request URL:", request.url?.absoluteString ?? "")
+        print("AI Request Headers:", request.allHTTPHeaderFields ?? [:])
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            print("AI Request Body:", bodyString)
+        }
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
