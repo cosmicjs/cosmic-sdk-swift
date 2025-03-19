@@ -103,8 +103,10 @@ public class CosmicSDKSwift {
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
         
         // Set authorization header based on the endpoint
-        if let writeKey = config.writeKey {
-            request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+        if endpoint.requiresWriteKey {
+            if let writeKey = config.writeKey {
+                request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+            }
         }
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
