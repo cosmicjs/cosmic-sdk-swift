@@ -59,6 +59,7 @@ public struct CosmicEndpointProvider {
     public enum Status: String {
         case published
         case draft
+        case any
     }
     
     public enum Sorting: String {
