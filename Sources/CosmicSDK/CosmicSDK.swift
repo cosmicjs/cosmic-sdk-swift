@@ -154,6 +154,8 @@ extension CosmicSDKSwift {
         let content: String?
         let metadata: [String: AnyCodable]?
         let status: String?
+        let publish_at: String?
+        let unpublish_at: String?
     }
     
     public struct SuccessResponse: Decodable {
@@ -198,10 +200,14 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
         let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
-        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: status?.rawValue)
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
         let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
                 
         makeRequest(request: request) { result in
@@ -219,10 +225,14 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
-        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable, status: status?.rawValue)
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
         let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
 
         makeRequest(request: request) { result in
@@ -459,7 +469,7 @@ extension CosmicSDKSwift {
     public func searchObjects(query: String) async throws -> CosmicSDK {
         let endpoint = CosmicEndpointProvider.API.searchObjects
         let searchBody = ["query": query] as [String: String]
-        var request = prepareRequest(endpoint, body: searchBody, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        let request = prepareRequest(endpoint, body: searchBody, bucket: config.bucketSlug, type: "", read_key: config.readKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -529,7 +539,7 @@ extension CosmicSDKSwift {
     
     public func updateBucketSettings(settings: BucketSettings) async throws -> SuccessResponse {
         let endpoint = CosmicEndpointProvider.API.updateBucketSettings
-        var request = prepareRequest(endpoint, body: settings, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, body: settings, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -621,7 +631,7 @@ extension CosmicSDKSwift {
     public func addUser(email: String, role: String) async throws -> UserSingleResponse {
         let endpoint = CosmicEndpointProvider.API.addUser
         let userBody = ["email": email, "role": role] as [String: String]
-        var request = prepareRequest(endpoint, body: userBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, body: userBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -735,7 +745,7 @@ extension CosmicSDKSwift {
     public func addWebhook(event: String, webhookEndpoint: String) async throws -> SuccessResponse {
         let endpoint = CosmicEndpointProvider.API.addWebhook
         let webhookBody = ["event": event, "endpoint": webhookEndpoint] as [String: String]
-        var request = prepareRequest(endpoint, body: webhookBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, body: webhookBody, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -817,7 +827,7 @@ extension CosmicSDKSwift {
     public func generateText(prompt: String) async throws -> AITextResponse {
         let endpoint = CosmicEndpointProvider.API.generateText(config.bucketSlug)
         let body = ["prompt": prompt]
-        var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
@@ -852,7 +862,7 @@ extension CosmicSDKSwift {
             "quality": quality,
             "style": style
         ]
-        var request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: "", read_key: config.readKey, write_key: config.writeKey)
         
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
