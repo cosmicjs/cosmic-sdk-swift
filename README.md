@@ -3,9 +3,11 @@
 </a>
 
 # CosmicSDKSwift
+
 A pure Swift interpretation of the Cosmic SDK for use in Swift and SwiftUI projects.
 
 ## About this project
+
 This project is heavily inspired by our [JavaScript SDK](https://github.com/cosmicjs/cosmic-sdk-js) and [Adam Rushy's OpenAISwift](https://github.com/adamrushy/OpenAISwift/tree/main).
 
 Having built multiple Cosmic-powered SwiftUI apps, it felt time to provide a smart SDK that mapped as closely to our JavaScript SDK without moving away from common Swift conventions.
@@ -33,8 +35,8 @@ You can get your API access keys by going to Bucket Settings > API Access in the
 ```swift
 let cosmic = CosmicSDKSwift(
     .createBucketClient(
-        bucketSlug: BUCKET, 
-        readKey: READ_KEY, 
+        bucketSlug: BUCKET,
+        readKey: READ_KEY,
         writeKey: WRITE_KEY
     )
 )
@@ -65,11 +67,11 @@ With optional props, limit, sorting and status parameters.
 @State var objects: [Object] = []
 
 cosmic.find(
-    type: TYPE, 
-    props: "metadata.image.imgix_url,slug", 
-    limit: "10", 
-    sort: .random, 
-    status: .any
+    type: TYPE,
+    props: "metadata.image.imgix_url,slug",
+    limit: 10,  // Now accepts Int instead of String
+    sort: .random,
+    status: .any  // New: Query for both published and draft objects
     ) { results in
     switch results {
     case .success(let result):
@@ -109,7 +111,7 @@ if let object = object {
 
 ```swift
 cosmic.insertOne(
-    type: TYPE, 
+    type: TYPE,
     title: object.title
     ) { results in
     switch results {
@@ -125,12 +127,12 @@ With optional props for content, metadata and slug
 
 ```swift
 cosmic.insertOne(
-    type: TYPE, 
-    id: object.id, 
-    props: object.props, 
-    title: object.title, 
-    content: object.content, 
-    metadata: ["key": "value"], 
+    type: TYPE,
+    id: object.id,
+    props: object.props,
+    title: object.title,
+    content: object.content,
+    metadata: ["key": "value"],
     slug: object.slug
     ) { results in
     switch results {
@@ -161,11 +163,11 @@ With optional props for title, content, metadata and status
 
 ```swift
 cosmic.updateOne(
-    type: TYPE, 
-    id: object.id, 
-    title: object.title, 
-    content: object.content, 
-    metadata: ["key": "value"], 
+    type: TYPE,
+    id: object.id,
+    title: object.title,
+    content: object.content,
+    metadata: ["key": "value"],
     status: .published
     ) { results in
     switch results {
@@ -191,6 +193,60 @@ cosmic.deleteOne(type: TYPE, id: object.id) { results in
 ```
 
 Depending on how you handle your data, you will have to account for `id` being a required parameter in the API.
+
+## New Features
+
+### Scheduled Publishing
+
+You can now schedule objects to be published or unpublished at specific dates:
+
+```swift
+// Schedule publish date
+cosmic.insertOne(
+    type: "posts",
+    title: "Holiday Sale",
+    publish_at: "2024-12-25T00:00:00.000Z"  // ISO 8601 format
+) { ... }
+
+// Schedule unpublish date
+cosmic.updateOne(
+    type: "events",
+    id: eventId,
+    title: "Limited Time Offer",
+    unpublish_at: "2024-12-31T23:59:59.000Z"
+) { ... }
+```
+
+Note: Objects with `publish_at` or `unpublish_at` dates are automatically saved as drafts.
+
+### Query Any Status
+
+Use `.any` status to query both published and draft objects:
+
+```swift
+cosmic.find(
+    type: "posts",
+    status: .any  // Returns both published and draft objects
+) { ... }
+```
+
+## Migration Guide
+
+### Limit Parameter Change
+
+The `limit` parameter now accepts `Int` instead of `String`. If you have existing code using String limits:
+
+```swift
+// Old code
+cosmic.find(type: "posts", limit: "10") { ... }
+
+// New code
+cosmic.find(type: "posts", limit: 10) { ... }
+
+// If you have a String variable
+let stringLimit = "10"
+cosmic.find(type: "posts", limit: Int(stringLimit) ?? 10) { ... }
+```
 
 ## License
 

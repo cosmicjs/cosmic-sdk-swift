@@ -97,6 +97,63 @@ final class PublishDateTests: XCTestCase {
         }
     }
     
+    func testFindWithIntegerLimit() {
+        // Example demonstrating the use of integer limit
+        
+        let config = CosmicSDKSwift.Config.createBucketClient(
+            bucketSlug: "your-bucket-slug",
+            readKey: "your-read-key",
+            writeKey: "your-write-key"
+        )
+        
+        let sdk = CosmicSDKSwift(config)
+        
+        // Find objects with an integer limit
+        sdk.find(
+            type: "posts",
+            limit: 5,  // Now accepts Int instead of String
+            sort: .created_at,
+            status: .published
+        ) { result in
+            switch result {
+            case .success(let response):
+                print("Found \(response.objects.count) objects (max 5)")
+            case .failure(let error):
+                print("Error: \(error)")
+            }
+        }
+    }
+    
+    func testFindWithStringLimitMigration() {
+        // Example of migrating from String to Int limit
+        
+        let config = CosmicSDKSwift.Config.createBucketClient(
+            bucketSlug: "your-bucket-slug",
+            readKey: "your-read-key",
+            writeKey: "your-write-key"
+        )
+        
+        let sdk = CosmicSDKSwift(config)
+        
+        // If you have a String limit from legacy code:
+        let stringLimit = "10"
+        
+        // Convert it to Int for the new API:
+        sdk.find(
+            type: "posts",
+            limit: Int(stringLimit) ?? 10,  // Convert String to Int with fallback
+            sort: .modified_at,
+            status: .draft
+        ) { result in
+            switch result {
+            case .success(let response):
+                print("Found \(response.objects.count) objects (max 10)")
+            case .failure(let error):
+                print("Error: \(error)")
+            }
+        }
+    }
+    
     func testUpdateObjectWithPublishDates() {
         // Example of updating an object with both publish and unpublish dates
         

@@ -16,6 +16,15 @@ public enum CosmicError: Error {
     case decodingError(error: Error)
 }
 
+// Type aliases to improve IDE autocomplete
+public typealias CosmicStatus = CosmicEndpointProvider.Status
+public typealias CosmicSorting = CosmicEndpointProvider.Sorting
+
+// MARK: - String to Int conversion helper
+// For backwards compatibility, if you have String limits in your code,
+// you can convert them using: Int(yourStringLimit) ?? defaultValue
+// Example: sdk.find(type: "posts", limit: Int("10") ?? 10)
+
 /// CosmicSDKSwift provides a Swift interface to the Cosmic API.
 ///
 /// This SDK requires:
@@ -162,9 +171,9 @@ extension CosmicSDKSwift {
         public let message: String?
     }
     
-    public func find(type: String, props: String? = nil, limit: String? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func find(type: String, props: String? = nil, limit: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit, sort: sort, status: status)
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit?.description, sort: sort, status: status)
         
         makeRequest(request: request) { result in
             switch result {
@@ -181,7 +190,9 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func findOne(type: String, id: String, props: String? = nil, limit: String? = nil, status: CosmicEndpointProvider.Status? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
+
+    
+    public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
         let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
                 
@@ -200,7 +211,9 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func insertOne(type: String, props: String? = nil, limit: String? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+
+    
+    public func insertOne(type: String, props: String? = nil, limit: Int? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.insertOne
         let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
         
@@ -208,7 +221,7 @@ extension CosmicSDKSwift {
         let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
         
         let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
-        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -225,7 +238,9 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func updateOne(type: String, id: String, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
+
+    
+    public func updateOne(type: String, id: String, props: String? = nil, limit: Int? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.updateOne
         let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
         
@@ -233,7 +248,7 @@ extension CosmicSDKSwift {
         let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
         
         let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
-        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
 
         makeRequest(request: request) { result in
             switch result {
@@ -249,6 +264,8 @@ extension CosmicSDKSwift {
             }
         }
     }
+    
+
     
     public func deleteOne(type: String, id: String, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.deleteOne
@@ -353,6 +370,8 @@ extension CosmicSDKSwift {
         }
     }
     
+
+    
     public func getMediaObject(id: String) async throws -> CosmicMediaSingleResponse {
         let endpoint = CosmicEndpointProvider.API.getMediaObject
         let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: "", read_key: config.readKey)
@@ -419,6 +438,8 @@ extension CosmicSDKSwift {
             }
         }
     }
+    
+
     
     public func getMediaObject(id: String, completionHandler: @escaping (Result<CosmicMediaSingleResponse, CosmicError>) -> Void) {
         Task {
