@@ -191,40 +191,66 @@ public struct Object: Codable {
     public let thumbnail: String?
     public let metafields: [Metafield]?
     
-    init(id: String? = nil, 
-         slug: String? = nil, 
-         title: String, 
-         content: String? = nil,
-         bucket: String? = nil,
-         created_at: String? = nil,
-         created_by: String? = nil,
-         modified_at: String? = nil,
-         modified_by: String? = nil,
-         status: String? = nil,
-         published_at: String? = nil,
-         publish_at: String? = nil,
-         unpublish_at: String? = nil,
-         type: String? = nil,
-         locale: String? = nil,
-         thumbnail: String? = nil,
-         metafields: [Metafield]? = nil) {
-        self.id = id
-        self.slug = slug
-        self.title = title
-        self.content = content
-        self.bucket = bucket
-        self.created_at = created_at
-        self.created_by = created_by
-        self.modified_at = modified_at
-        self.modified_by = modified_by
-        self.status = status
-        self.published_at = published_at
-        self.publish_at = publish_at
-        self.unpublish_at = unpublish_at
-        self.type = type
-        self.locale = locale
-        self.thumbnail = thumbnail
-        self.metafields = metafields
+    enum CodingKeys: String, CodingKey {
+        case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metafields
+    }
+    
+    // Custom decoder to gracefully handle String or numeric publish_at fields
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        slug = try container.decodeIfPresent(String.self, forKey: .slug)
+        title = try container.decode(String.self, forKey: .title)
+        content = try container.decodeIfPresent(String.self, forKey: .content)
+        bucket = try container.decodeIfPresent(String.self, forKey: .bucket)
+        created_at = try container.decodeIfPresent(String.self, forKey: .created_at)
+        created_by = try container.decodeIfPresent(String.self, forKey: .created_by)
+        modified_at = try container.decodeIfPresent(String.self, forKey: .modified_at)
+        modified_by = try container.decodeIfPresent(String.self, forKey: .modified_by)
+        status = try container.decodeIfPresent(String.self, forKey: .status)
+        published_at = try Object.decodeStringOrNumber(from: container, forKey: .published_at)
+        publish_at = try Object.decodeStringOrNumber(from: container, forKey: .publish_at)
+        unpublish_at = try Object.decodeStringOrNumber(from: container, forKey: .unpublish_at)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
+        locale = try container.decodeIfPresent(String.self, forKey: .locale)
+        thumbnail = try container.decodeIfPresent(String.self, forKey: .thumbnail)
+        metafields = try container.decodeIfPresent([Metafield].self, forKey: .metafields)
+    }
+    
+    // We rarely encode Object back to JSON in the SDK. Implement minimal encoder.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encodeIfPresent(slug, forKey: .slug)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(content, forKey: .content)
+        try container.encodeIfPresent(bucket, forKey: .bucket)
+        try container.encodeIfPresent(created_at, forKey: .created_at)
+        try container.encodeIfPresent(created_by, forKey: .created_by)
+        try container.encodeIfPresent(modified_at, forKey: .modified_at)
+        try container.encodeIfPresent(modified_by, forKey: .modified_by)
+        try container.encodeIfPresent(status, forKey: .status)
+        try container.encodeIfPresent(published_at, forKey: .published_at)
+        try container.encodeIfPresent(publish_at, forKey: .publish_at)
+        try container.encodeIfPresent(unpublish_at, forKey: .unpublish_at)
+        try container.encodeIfPresent(type, forKey: .type)
+        try container.encodeIfPresent(locale, forKey: .locale)
+        try container.encodeIfPresent(thumbnail, forKey: .thumbnail)
+        try container.encodeIfPresent(metafields, forKey: .metafields)
+    }
+    
+    // Helper to decode String or numeric value
+    private static func decodeStringOrNumber(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> String? {
+        if let stringVal = try? container.decodeIfPresent(String.self, forKey: key) {
+            return stringVal
+        }
+        if let intVal = try? container.decodeIfPresent(Int.self, forKey: key) {
+            return String(intVal)
+        }
+        if let doubleVal = try? container.decodeIfPresent(Double.self, forKey: key) {
+            return String(doubleVal)
+        }
+        return nil
     }
 }
 
