@@ -171,7 +171,7 @@ public struct Metafield: Codable {
     }
 }
 
-// Update Object model to use the new Metafield type
+// Object model with structured metadata
 public struct Object: Codable {
     public let id: String?
     public let slug: String?
@@ -189,10 +189,10 @@ public struct Object: Codable {
     public let type: String?
     public let locale: String?
     public let thumbnail: String?
-    public let metadata: [String: AnyCodable]?
+    public let metadata: [Metafield]?
     
     enum CodingKeys: String, CodingKey {
-        case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metadata
+        case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metadata, metafields
     }
     
     // Custom decoder to gracefully handle String or numeric publish_at fields
@@ -214,7 +214,13 @@ public struct Object: Codable {
         type = try container.decodeIfPresent(String.self, forKey: .type)
         locale = try container.decodeIfPresent(String.self, forKey: .locale)
         thumbnail = try container.decodeIfPresent(String.self, forKey: .thumbnail)
-        metadata = try container.decodeIfPresent([String: AnyCodable].self, forKey: .metadata)
+        
+        // Try to decode from 'metadata' first, then fall back to 'metafields' for backward compatibility
+        if let metadataValue = try container.decodeIfPresent([Metafield].self, forKey: .metadata) {
+            metadata = metadataValue
+        } else {
+            metadata = try container.decodeIfPresent([Metafield].self, forKey: .metafields)
+        }
     }
     
     // We rarely encode Object back to JSON in the SDK. Implement minimal encoder.
