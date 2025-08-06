@@ -267,6 +267,26 @@ struct Command: Codable {
     public let metadata: [String: AnyCodable]?
 }
 
+// MARK: - Object Extensions
+extension Object {
+    /// Access metadata by key for easier usage
+    public func metadataValue(for key: String) -> AnyCodable? {
+        return metadata?.first(where: { $0.key == key })?.value
+    }
+    
+    /// Get all metadata as a dictionary for convenience
+    public var metadataDict: [String: AnyCodable]? {
+        guard let metadata = metadata else { return nil }
+        var dict: [String: AnyCodable] = [:]
+        for field in metadata {
+            if let value = field.value {
+                dict[field.key] = value
+            }
+        }
+        return dict.isEmpty ? nil : dict
+    }
+}
+
 // MARK: - Media Models
 public struct CosmicMedia: Codable {
     public let id: String
