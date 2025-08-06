@@ -271,14 +271,14 @@ struct Command: Codable {
 extension Object {
     /// Access metafield by key for easier usage
     public func metafieldValue(for key: String) -> AnyCodable? {
-        return metafields?.first(where: { $0.key == key })?.value
+        return metadata?.first(where: { $0.key == key })?.value
     }
     
     /// Get all metafields as a dictionary for convenience
     public var metafieldsDict: [String: AnyCodable]? {
-        guard let metafields = metafields else { return nil }
+        guard let metadata = metadata else { return nil }
         var dict: [String: AnyCodable] = [:]
-        for field in metafields {
+        for field in metadata {
             if let value = field.value {
                 dict[field.key] = value
             }
