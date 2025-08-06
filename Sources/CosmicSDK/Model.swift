@@ -189,10 +189,10 @@ public struct Object: Codable {
     public let type: String?
     public let locale: String?
     public let thumbnail: String?
-    public let metafields: [Metafield]?
+    public let metadata: [String: AnyCodable]?
     
     enum CodingKeys: String, CodingKey {
-        case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metafields
+        case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metadata
     }
     
     // Custom decoder to gracefully handle String or numeric publish_at fields
@@ -214,7 +214,7 @@ public struct Object: Codable {
         type = try container.decodeIfPresent(String.self, forKey: .type)
         locale = try container.decodeIfPresent(String.self, forKey: .locale)
         thumbnail = try container.decodeIfPresent(String.self, forKey: .thumbnail)
-        metafields = try container.decodeIfPresent([Metafield].self, forKey: .metafields)
+        metadata = try container.decodeIfPresent([String: AnyCodable].self, forKey: .metadata)
     }
     
     // We rarely encode Object back to JSON in the SDK. Implement minimal encoder.
@@ -236,7 +236,7 @@ public struct Object: Codable {
         try container.encodeIfPresent(type, forKey: .type)
         try container.encodeIfPresent(locale, forKey: .locale)
         try container.encodeIfPresent(thumbnail, forKey: .thumbnail)
-        try container.encodeIfPresent(metafields, forKey: .metafields)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
     }
     
     // Helper to decode String or numeric value
