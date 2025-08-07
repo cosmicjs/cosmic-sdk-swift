@@ -268,7 +268,7 @@ cosmic.find(type: TYPE) { results in
 }
 ```
 
-With optional props, limit, sorting and status parameters:
+With optional props, limit, sorting, status, and depth parameters:
 
 **Async/Await:**
 
@@ -278,7 +278,8 @@ let result = try await cosmic.find(
     props: "metadata.image.imgix_url,slug",
     limit: 10,  // Now accepts Int instead of String
     sort: .random,
-    status: .any  // Query for both published and draft objects
+    status: .any,  // Query for both published and draft objects
+    depth: 2  // Resolve nested Object references up to 2 levels deep
 )
 self.objects = result.objects
 ```
@@ -291,7 +292,8 @@ cosmic.find(
     props: "metadata.image.imgix_url,slug",
     limit: 10,
     sort: .random,
-    status: .any
+    status: .any,
+    depth: 2  // Resolve nested Object references
 ) { results in
     switch results {
     case .success(let result):
@@ -480,6 +482,35 @@ cosmic.deleteOne(type: TYPE, id: objectId) { results in
 Depending on how you handle your data, you will have to account for `id` being a required parameter in the API.
 
 ## New Features
+
+### Depth Parameter
+
+The `depth` parameter allows you to automatically resolve nested Object references in your metadata. This is particularly useful when you have Object or Objects type metafields that reference other Objects in your Bucket.
+
+```swift
+// Without depth (default): nested objects return as references
+let post = try await cosmic.findOne(type: "posts", id: postId)
+// post.metadata?.author might return: { "id": "author-123" }
+
+// With depth: nested objects are fully resolved
+let post = try await cosmic.findOne(type: "posts", id: postId, depth: 1)
+// post.metadata?.author now returns the full author object with all its data
+
+// Multiple levels of nesting
+let event = try await cosmic.find(
+    type: "events",
+    depth: 2  // Resolves up to 2 levels deep
+)
+// event.metadata?.venue (level 1) and venue.metadata?.city (level 2) are both resolved
+```
+
+**Use Cases:**
+- Blog posts with author references
+- Products with category objects
+- Events with venue and speaker references
+- Any content with relational data
+
+**Performance Note:** Higher depth values may impact response time as more data needs to be fetched and resolved.
 
 ### Scheduled Publishing
 
