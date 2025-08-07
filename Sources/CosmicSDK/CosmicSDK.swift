@@ -65,7 +65,11 @@ public class CosmicSDKSwift {
                   writeKey: writeKey,
                   session: .shared,
                   authorizeRequest: { request in
-                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    // Only add Authorization header for non-GET requests
+                    // GET requests use read_key in URL parameters
+                    if request.httpMethod != "GET" {
+                        request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    }
             })
         }
     }
@@ -80,6 +84,18 @@ public class CosmicSDKSwift {
             if let error = error {
                 completionHandler(.failure(error))
             } else if let data = data {
+                // Debug: Print response details
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("Response Status: \(httpResponse.statusCode)")
+                    print("Response Headers: \(httpResponse.allHeaderFields)")
+                }
+                
+                // Debug: Print first 500 characters of response
+                if let responseString = String(data: data, encoding: .utf8) {
+                    let preview = String(responseString.prefix(500))
+                    print("Response Preview: \(preview)")
+                }
+                
                 completionHandler(.success(data))
             }
         }
@@ -87,8 +103,8 @@ public class CosmicSDKSwift {
         task.resume()
     }
    
-    private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest where BodyType: Encodable {
-        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, status: status, sort: sort)
+    private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil) -> URLRequest where BodyType: Encodable {
+        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, skip: skip, status: status, sort: sort, depth: depth)
         
         // Create URL components based on whether we have a full URL or just a path
         let urlComponents: URLComponents
@@ -101,9 +117,15 @@ public class CosmicSDKSwift {
             urlComponents = components
         }
         
-        // Add query parameters
+        // Add query parameters - only include those with actual values
         var finalComponents = urlComponents
-        finalComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
+        finalComponents.queryItems = pathAndParameters.1.compactMap { key, value in
+            // Skip empty, nil, or whitespace-only values
+            guard let value = value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { 
+                return nil 
+            }
+            return URLQueryItem(name: key, value: value)
+        }
         
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
@@ -111,6 +133,11 @@ public class CosmicSDKSwift {
         config.authorizeRequest(&request)
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Debug: Print request details
+        print("Request URL: \(request.url?.absoluteString ?? "nil")")
+        print("Request Method: \(request.httpMethod ?? "nil")")
+        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
         
         if let body = body {
             if let jsonData = try? JSONEncoder().encode(body) {
@@ -122,8 +149,8 @@ public class CosmicSDKSwift {
     }
 
     // Helper method for requests without body
-    private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil) -> URLRequest {
-        return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status)
+    private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil) -> URLRequest {
+        return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, skip: skip, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status, depth: depth)
     }
 
     private func mimeType(for url: URL) -> String {
@@ -171,9 +198,48 @@ extension CosmicSDKSwift {
         public let message: String?
     }
     
-    public func find(type: String, props: String? = nil, limit: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    /// Get bucket information including available object types
+    public func getBucketInfo(completionHandler: @escaping (Result<BucketResponse, CosmicError>) -> Void) {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        makeRequest(request: request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(BucketResponse.self, from: data)
+                    completionHandler(.success(response))
+                } catch {
+                    completionHandler(.failure(.decodingError(error: error)))
+                }
+            case .failure(let error):
+                completionHandler(.failure(.genericError(error: error)))
+            }
+        }
+    }
+    
+    /// Test connection to Cosmic API
+    public func testConnection(completionHandler: @escaping (Result<String, CosmicError>) -> Void) {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        makeRequest(request: request) { result in
+            switch result {
+            case .success(let data):
+                if let responseString = String(data: data, encoding: .utf8) {
+                    completionHandler(.success(responseString))
+                } else {
+                    completionHandler(.failure(.genericError(error: NSError(domain: "CosmicSDK", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response encoding"]))))
+                }
+            case .failure(let error):
+                completionHandler(.failure(.genericError(error: error)))
+            }
+        }
+    }
+    
+    public func find(type: String, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit?.description, sort: sort, status: status)
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description)
         
         makeRequest(request: request) { result in
             switch result {
@@ -192,9 +258,9 @@ extension CosmicSDKSwift {
     
 
     
-    public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
+    public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDKSingle, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.findOne
-        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, status: status, depth: depth?.description)
                 
         makeRequest(request: request) { result in
             switch result {
@@ -459,6 +525,170 @@ extension CosmicSDKSwift {
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - Connection Testing
+extension CosmicSDKSwift {
+    public func getBucketInfo() async throws -> BucketResponse {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(BucketResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func testConnection() async throws -> String {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        continuation.resume(returning: responseString)
+                    } else {
+                        continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "CosmicSDK", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response encoding"])))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Object Operations (Async/Await)
+extension CosmicSDKSwift {
+    public func find(type: String, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDK {
+        let endpoint = CosmicEndpointProvider.API.find
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDK.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDKSingle {
+        let endpoint = CosmicEndpointProvider.API.findOne
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, status: status, depth: depth?.description)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDKSingle.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func insertOne(type: String, props: String? = nil, limit: Int? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.insertOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func updateOne(type: String, id: String, props: String? = nil, limit: Int? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.updateOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func deleteOne(type: String, id: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.deleteOne
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
             }
         }
     }

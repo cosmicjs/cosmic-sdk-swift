@@ -171,6 +171,295 @@ public struct Metafield: Codable {
     }
 }
 
+// MARK: - MetadataValue
+/// A transparent wrapper that provides seamless access to metadata values
+@dynamicMemberLookup
+public struct MetadataValue: CustomStringConvertible {
+    private let value: Any?
+    
+    init(value: Any?) {
+        self.value = value
+    }
+    
+    /// Implicit conversion to optional String
+    public var stringValue: String? {
+        return value as? String
+    }
+    
+    /// Implicit conversion to optional Int
+    public var intValue: Int? {
+        return value as? Int
+    }
+    
+    /// Implicit conversion to optional Double
+    public var doubleValue: Double? {
+        return value as? Double
+    }
+    
+    /// Implicit conversion to optional Bool
+    public var boolValue: Bool? {
+        return value as? Bool
+    }
+    
+    /// Direct access as specific type - for backward compatibility
+    public var string: String? { stringValue }
+    public var int: Int? { intValue }
+    public var double: Double? { doubleValue }
+    public var bool: Bool? { boolValue }
+    
+    /// Array value with generic type
+    public func array<T>(of type: T.Type = T.self) -> [T]? {
+        return value as? [T]
+    }
+    
+    /// Dictionary value with generic types
+    public func dictionary<K: Hashable, V>(keyType: K.Type = K.self, valueType: V.Type = V.self) -> [K: V]? {
+        return value as? [K: V]
+    }
+    
+    /// Raw value for custom casting
+    public var raw: Any? {
+        return value
+    }
+    
+    /// Check if value exists (not nil)
+    public var exists: Bool {
+        return value != nil
+    }
+    
+    /// String description
+    public var description: String {
+        return String(describing: value)
+    }
+    
+    /// Dynamic member lookup for nested objects
+    public subscript(dynamicMember key: String) -> MetadataValue {
+        if let dict = value as? [String: Any] {
+            return MetadataValue(value: dict[key])
+        }
+        return MetadataValue(value: nil)
+    }
+}
+
+// MARK: - MetadataValue Extensions
+extension MetadataValue: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.init(value: value)
+    }
+}
+
+extension MetadataValue: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
+        self.init(value: value)
+    }
+}
+
+extension MetadataValue: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: Double) {
+        self.init(value: value)
+    }
+}
+
+extension MetadataValue: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: Bool) {
+        self.init(value: value)
+    }
+}
+
+// Allow direct comparison
+extension MetadataValue: Equatable {
+    public static func == (lhs: MetadataValue, rhs: MetadataValue) -> Bool {
+        // String comparison
+        if let lhsString = lhs.stringValue, let rhsString = rhs.stringValue {
+            return lhsString == rhsString
+        }
+        // Int comparison
+        if let lhsInt = lhs.intValue, let rhsInt = rhs.intValue {
+            return lhsInt == rhsInt
+        }
+        // Double comparison
+        if let lhsDouble = lhs.doubleValue, let rhsDouble = rhs.doubleValue {
+            return lhsDouble == rhsDouble
+        }
+        // Bool comparison
+        if let lhsBool = lhs.boolValue, let rhsBool = rhs.boolValue {
+            return lhsBool == rhsBool
+        }
+        // Both nil
+        return lhs.value == nil && rhs.value == nil
+    }
+    
+    // Allow comparison with literals
+    public static func == (lhs: MetadataValue, rhs: String) -> Bool {
+        return lhs.stringValue == rhs
+    }
+    
+    public static func == (lhs: MetadataValue, rhs: Int) -> Bool {
+        return lhs.intValue == rhs
+    }
+    
+    public static func == (lhs: MetadataValue, rhs: Double) -> Bool {
+        return lhs.doubleValue == rhs
+    }
+    
+    public static func == (lhs: MetadataValue, rhs: Bool) -> Bool {
+        return lhs.boolValue == rhs
+    }
+}
+
+// MARK: - ObjectMetadata
+/// A wrapper for metadata that can handle both array and dictionary formats from the API
+@dynamicMemberLookup
+public struct ObjectMetadata: Codable {
+    private let storage: MetadataStorage
+    
+    private enum MetadataStorage {
+        case array([Metafield])
+        case dictionary([String: AnyCodable])
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        // Try to decode as array first (backward compatibility)
+        if let array = try? container.decode([Metafield].self) {
+            storage = .array(array)
+        }
+        // Then try as dictionary (new format)
+        else if let dict = try? container.decode([String: AnyCodable].self) {
+            storage = .dictionary(dict)
+        }
+        // If neither works, check if it's empty/null
+        else if container.decodeNil() {
+            storage = .dictionary([:])
+        } else {
+            throw DecodingError.typeMismatch(
+                ObjectMetadata.self,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected to decode Array<Metafield> or Dictionary<String, Any> for metadata"
+                )
+            )
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch storage {
+        case .array(let array):
+            try container.encode(array)
+        case .dictionary(let dict):
+            try container.encode(dict)
+        }
+    }
+    
+    /// Access metadata fields as an array (for backward compatibility)
+    public var fields: [Metafield]? {
+        switch storage {
+        case .array(let array):
+            return array
+        case .dictionary(let dict):
+            // Convert dictionary to array of Metafield objects
+            return dict.map { key, value in
+                Metafield(
+                    type: .text, // Default type when converting from dictionary
+                    title: key.replacingOccurrences(of: "_", with: " ").capitalized,
+                    key: key,
+                    value: value,
+                    required: false,
+                    options: nil,
+                    object_type: nil,
+                    children: nil,
+                    repeater_fields: nil
+                )
+            }
+        }
+    }
+    
+    /// Access metadata fields as a dictionary
+    public var dict: [String: AnyCodable]? {
+        switch storage {
+        case .array(let array):
+            var dict: [String: AnyCodable] = [:]
+            for field in array {
+                if let value = field.value {
+                    dict[field.key] = value
+                }
+            }
+            return dict.isEmpty ? nil : dict
+        case .dictionary(let dict):
+            return dict.isEmpty ? nil : dict
+        }
+    }
+    
+    /// Get value for a specific key
+    public func value(for key: String) -> AnyCodable? {
+        switch storage {
+        case .array(let array):
+            return array.first(where: { $0.key == key })?.value
+        case .dictionary(let dict):
+            return dict[key]
+        }
+    }
+    
+    /// Dynamic member lookup returns a MetadataValue wrapper for flexible access
+    public subscript(dynamicMember key: String) -> MetadataValue {
+        return MetadataValue(value: value(for: key)?.value)
+    }
+    
+    /// Direct string access helper
+    public func string(_ key: String) -> String? {
+        return value(for: key)?.value as? String
+    }
+    
+    /// Direct int access helper
+    public func int(_ key: String) -> Int? {
+        return value(for: key)?.value as? Int
+    }
+    
+    /// Direct double access helper
+    public func double(_ key: String) -> Double? {
+        return value(for: key)?.value as? Double
+    }
+    
+    /// Direct bool access helper
+    public func bool(_ key: String) -> Bool? {
+        return value(for: key)?.value as? Bool
+    }
+    
+    /// Initialize with custom decoding for Metafield
+    private init(type: MetafieldType, title: String, key: String, value: AnyCodable?, required: Bool?, options: [MetafieldOption]?, object_type: String?, children: [Metafield]?, repeater_fields: [RepeaterField]?) {
+        // This is a helper initializer used when converting dictionary to array format
+        let metafield = Metafield(
+            type: type,
+            title: title,
+            key: key,
+            value: value,
+            required: required,
+            options: options,
+            object_type: object_type,
+            children: children,
+            repeater_fields: repeater_fields
+        )
+        storage = .array([metafield])
+    }
+}
+
+// Custom initializer for Metafield to support the conversion
+extension Metafield {
+    init(type: MetafieldType, title: String, key: String, value: AnyCodable?, required: Bool?, options: [MetafieldOption]?, object_type: String?, children: [Metafield]?, repeater_fields: [RepeaterField]?) {
+        self.type = type
+        self.title = title
+        self.key = key
+        self.value = value
+        self.required = required
+        self.options = options
+        self.object_type = object_type
+        self.children = children
+        self.repeater_fields = repeater_fields
+    }
+}
+
 // Object model with structured metadata
 public struct Object: Codable {
     public let id: String?
@@ -189,7 +478,7 @@ public struct Object: Codable {
     public let type: String?
     public let locale: String?
     public let thumbnail: String?
-    public let metadata: [Metafield]?
+    public let metadata: ObjectMetadata?
     
     enum CodingKeys: String, CodingKey {
         case id, slug, title, content, bucket, created_at, created_by, modified_at, modified_by, status, published_at, publish_at, unpublish_at, type, locale, thumbnail, metadata, metafields
@@ -216,10 +505,20 @@ public struct Object: Codable {
         thumbnail = try container.decodeIfPresent(String.self, forKey: .thumbnail)
         
         // Try to decode from 'metadata' first, then fall back to 'metafields' for backward compatibility
-        if let metadataValue = try container.decodeIfPresent([Metafield].self, forKey: .metadata) {
-            metadata = metadataValue
+        if container.contains(.metadata) {
+            metadata = try container.decodeIfPresent(ObjectMetadata.self, forKey: .metadata)
+        } else if container.contains(.metafields) {
+            // If we have metafields, decode as array and wrap in ObjectMetadata
+            if let metafieldsArray = try container.decodeIfPresent([Metafield].self, forKey: .metafields) {
+                let encoder = JSONEncoder()
+                let decoder = JSONDecoder()
+                let data = try encoder.encode(metafieldsArray)
+                metadata = try decoder.decode(ObjectMetadata.self, from: data)
+            } else {
+                metadata = nil
+            }
         } else {
-            metadata = try container.decodeIfPresent([Metafield].self, forKey: .metafields)
+            metadata = nil
         }
     }
     
@@ -271,19 +570,17 @@ struct Command: Codable {
 extension Object {
     /// Access metafield by key for easier usage
     public func metafieldValue(for key: String) -> AnyCodable? {
-        return metadata?.first(where: { $0.key == key })?.value
+        return metadata?.value(for: key)
     }
     
     /// Get all metafields as a dictionary for convenience
     public var metafieldsDict: [String: AnyCodable]? {
-        guard let metadata = metadata else { return nil }
-        var dict: [String: AnyCodable] = [:]
-        for field in metadata {
-            if let value = field.value {
-                dict[field.key] = value
-            }
-        }
-        return dict.isEmpty ? nil : dict
+        return metadata?.dict
+    }
+    
+    /// Get all metafields as an array (for backward compatibility)
+    public var metafields: [Metafield]? {
+        return metadata?.fields
     }
 }
 

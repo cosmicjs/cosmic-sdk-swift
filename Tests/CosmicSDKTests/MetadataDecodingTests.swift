@@ -30,8 +30,9 @@ final class MetadataDecodingTests: XCTestCase {
         
         XCTAssertEqual(object.title, "Test Object")
         XCTAssertNotNil(object.metadata)
-        XCTAssertEqual(object.metadata?.count, 1)
-        XCTAssertEqual(object.metadata?.first?.key, "test_field")
+        XCTAssertEqual(object.metafields?.count, 1)
+        XCTAssertEqual(object.metafields?.first?.key, "test_field")
+        XCTAssertEqual(object.metafieldValue(for: "test_field")?.value as? String, "Test Value")
     }
     
     func testDecodingWithMetafieldsProperty() throws {
@@ -54,8 +55,9 @@ final class MetadataDecodingTests: XCTestCase {
         
         XCTAssertEqual(object.title, "Test Object")
         XCTAssertNotNil(object.metadata)
-        XCTAssertEqual(object.metadata?.count, 1)
-        XCTAssertEqual(object.metadata?.first?.key, "test_field")
+        XCTAssertEqual(object.metafields?.count, 1)
+        XCTAssertEqual(object.metafields?.first?.key, "test_field")
+        XCTAssertEqual(object.metafieldValue(for: "test_field")?.value as? String, "Test Value")
     }
     
     func testEncodingUsesMetadataProperty() throws {
