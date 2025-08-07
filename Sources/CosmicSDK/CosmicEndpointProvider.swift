@@ -85,7 +85,7 @@ public struct CosmicEndpointProvider {
         }
     }
     
-    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, depth: String? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
+    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, skip: String? = nil, status: Status? = nil, sort: Sorting? = nil, depth: String? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
         switch source {
         case .cosmic:
             switch api {
@@ -99,7 +99,7 @@ public struct CosmicEndpointProvider {
                 return ("/v3/buckets/\(bucket)/objects", [
                     "query": queryParam,
                     "limit": limit ?? "10",
-                    "skip": "0",
+                    "skip": skip ?? "0",
                     "props": finalProps,
                     "status": status?.rawValue,
                     "sort": sort?.rawValue,

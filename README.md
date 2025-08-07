@@ -73,6 +73,12 @@ do {
 
 4. **Network Issues**: Ensure your app has internet connectivity
 
+## TODO
+
+- [x] Add depth parameter to find methods
+- [x] Add skip parameter for pagination
+- [x] Update README with pagination examples
+
 ```swift
 let cosmic = CosmicSDKSwift(
     .createBucketClient(
@@ -281,6 +287,15 @@ try await cosmic.updateOne(
 
 The SDK automatically formats requests to match the Cosmic API specification, including proper query parameters and authentication.
 
+### Pagination
+
+The `find` method supports pagination using the `limit` and `skip` parameters:
+
+- **`limit`**: Number of objects to return (default: 10)
+- **`skip`**: Number of objects to skip before returning results (default: 0)
+
+This allows you to implement pagination in your app:
+
 **Using Async/Await (Recommended):**
 
 ```swift
@@ -290,6 +305,21 @@ Task {
     do {
         let result = try await cosmic.find(type: TYPE)
         self.objects = result.objects
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+// With pagination
+Task {
+    do {
+        // Get first 10 objects
+        let firstPage = try await cosmic.find(type: TYPE, limit: 10, skip: 0)
+
+        // Get next 10 objects
+        let secondPage = try await cosmic.find(type: TYPE, limit: 10, skip: 10)
+
+        self.objects = firstPage.objects + secondPage.objects
     } catch {
         print("Error: \(error)")
     }
