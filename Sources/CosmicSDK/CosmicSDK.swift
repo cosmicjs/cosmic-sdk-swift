@@ -464,6 +464,126 @@ extension CosmicSDKSwift {
     }
 }
 
+// MARK: - Object Operations (Async/Await)
+extension CosmicSDKSwift {
+    public func find(type: String, props: String? = nil, limit: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil) async throws -> CosmicSDK {
+        let endpoint = CosmicEndpointProvider.API.find
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, limit: limit?.description, sort: sort, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDK.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil) async throws -> CosmicSDKSingle {
+        let endpoint = CosmicEndpointProvider.API.findOne
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDKSingle.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func insertOne(type: String, props: String? = nil, limit: Int? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.insertOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func updateOne(type: String, id: String, props: String? = nil, limit: Int? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.updateOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title, content: content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    public func deleteOne(type: String, id: String) async throws -> SuccessResponse {
+        let endpoint = CosmicEndpointProvider.API.deleteOne
+        let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Object Operations (Additional)
 extension CosmicSDKSwift {
     public func getObjectRevisions(id: String) async throws -> ObjectRevisionsResponse {
