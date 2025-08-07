@@ -279,6 +279,8 @@ try await cosmic.updateOne(
 
 ### [Find](https://www.cosmicjs.com/docs/api/objects#get-objects)
 
+The SDK automatically formats requests to match the Cosmic API specification, including proper query parameters and authentication.
+
 **Using Async/Await (Recommended):**
 
 ```swift
