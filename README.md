@@ -505,6 +505,7 @@ let event = try await cosmic.find(
 ```
 
 **Use Cases:**
+
 - Blog posts with author references
 - Products with category objects
 - Events with venue and speaker references
