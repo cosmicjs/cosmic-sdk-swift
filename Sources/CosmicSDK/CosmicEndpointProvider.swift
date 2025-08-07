@@ -85,16 +85,16 @@ public struct CosmicEndpointProvider {
         }
     }
     
-    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, depth: Int? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
+    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, status: Status? = nil, sort: Sorting? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
         switch source {
         case .cosmic:
             switch api {
             // Object endpoints
             case .find:
-                return ("/v3/buckets/\(bucket)/objects", ["read_key": read_key, "type": type, "limit": limit, "props": props, "status": status?.rawValue, "sort": sort?.rawValue, "depth": depth?.description])
+                return ("/v3/buckets/\(bucket)/objects", ["read_key": read_key, "type": type, "limit": limit, "props": props, "status": status?.rawValue, "sort": sort?.rawValue])
             case .findOne:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)", ["read_key": read_key, "props": props, "status": status?.rawValue, "depth": depth?.description])
+                return ("/v3/buckets/\(bucket)/objects/\(id)", ["read_key": read_key, "props": props, "status": status?.rawValue])
             case .insertOne:
                 return ("/v3/buckets/\(bucket)/objects", ["write_key": write_key])
             case .updateOne:
