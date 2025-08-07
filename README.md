@@ -32,6 +32,35 @@ Import the framework in your project:
 
 You can get your API access keys by going to Bucket Settings > API Access in the [Cosmic dashboard](https://app.cosmicjs.com/login).
 
+### Testing Your Connection
+
+If you're experiencing issues, you can test your connection first:
+
+```swift
+// Test basic connection
+do {
+    let response = try await cosmic.testConnection()
+    print("Connection successful: \(response)")
+} catch {
+    print("Connection failed: \(error)")
+}
+```
+
+### Common Issues
+
+1. **HTML Response Instead of JSON**: This usually means authentication failed
+
+   - Check your bucket slug and read key
+   - Ensure your read key has the correct permissions
+   - Verify the bucket exists and is accessible
+
+2. **Object Types Not Found**: Make sure the object types exist in your bucket
+
+   - Check your Cosmic dashboard for available object types
+   - Object type names are case-sensitive
+
+3. **Network Issues**: Ensure your app has internet connectivity
+
 ```swift
 let cosmic = CosmicSDKSwift(
     .createBucketClient(

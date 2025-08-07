@@ -80,6 +80,18 @@ public class CosmicSDKSwift {
             if let error = error {
                 completionHandler(.failure(error))
             } else if let data = data {
+                // Debug: Print response details
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("Response Status: \(httpResponse.statusCode)")
+                    print("Response Headers: \(httpResponse.allHeaderFields)")
+                }
+                
+                // Debug: Print first 500 characters of response
+                if let responseString = String(data: data, encoding: .utf8) {
+                    let preview = String(responseString.prefix(500))
+                    print("Response Preview: \(preview)")
+                }
+                
                 completionHandler(.success(data))
             }
         }
@@ -111,6 +123,11 @@ public class CosmicSDKSwift {
         config.authorizeRequest(&request)
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Debug: Print request details
+        print("Request URL: \(request.url?.absoluteString ?? "nil")")
+        print("Request Method: \(request.httpMethod ?? "nil")")
+        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
         
         if let body = body {
             if let jsonData = try? JSONEncoder().encode(body) {
@@ -169,6 +186,25 @@ extension CosmicSDKSwift {
     
     public struct SuccessResponse: Decodable {
         public let message: String?
+    }
+    
+    /// Test connection to Cosmic API
+    public func testConnection(completionHandler: @escaping (Result<String, CosmicError>) -> Void) {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        makeRequest(request: request) { result in
+            switch result {
+            case .success(let data):
+                if let responseString = String(data: data, encoding: .utf8) {
+                    completionHandler(.success(responseString))
+                } else {
+                    completionHandler(.failure(.genericError(error: NSError(domain: "CosmicSDK", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response encoding"]))))
+                }
+            case .failure(let error):
+                completionHandler(.failure(.genericError(error: error)))
+            }
+        }
     }
     
     public func find(type: String, props: String? = nil, limit: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
@@ -459,6 +495,29 @@ extension CosmicSDKSwift {
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+}
+
+// MARK: - Connection Testing
+extension CosmicSDKSwift {
+    public func testConnection() async throws -> String {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        continuation.resume(returning: responseString)
+                    } else {
+                        continuation.resume(throwing: CosmicError.genericError(error: NSError(domain: "CosmicSDK", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response encoding"])))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
             }
         }
     }
