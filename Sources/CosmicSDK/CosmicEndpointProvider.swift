@@ -91,10 +91,32 @@ public struct CosmicEndpointProvider {
             switch api {
             // Object endpoints
             case .find:
-                return ("/v3/buckets/\(bucket)/objects", ["read_key": read_key, "type": type, "limit": limit, "props": props, "status": status?.rawValue, "sort": sort?.rawValue, "depth": depth])
+                // Build query parameter for type filtering
+                let queryParam = "{\"type\":\"\(type)\"}"
+                let defaultProps = "slug,title,metadata,type,"
+                let finalProps = props ?? defaultProps
+                
+                return ("/v3/buckets/\(bucket)/objects", [
+                    "query": queryParam,
+                    "limit": limit ?? "10",
+                    "skip": "0",
+                    "props": finalProps,
+                    "status": status?.rawValue,
+                    "sort": sort?.rawValue,
+                    "depth": depth,
+                    "pretty": "true",
+                    "read_key": read_key
+                ])
             case .findOne:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)", ["read_key": read_key, "props": props, "status": status?.rawValue, "depth": depth])
+                let defaultProps = "slug,title,metadata,type,"
+                let finalProps = props ?? defaultProps
+                return ("/v3/buckets/\(bucket)/objects/\(id)", [
+                    "props": finalProps,
+                    "status": status?.rawValue,
+                    "depth": depth,
+                    "read_key": read_key
+                ])
             case .insertOne:
                 return ("/v3/buckets/\(bucket)/objects", ["write_key": write_key])
             case .updateOne:
@@ -108,30 +130,30 @@ public struct CosmicEndpointProvider {
             case .uploadMedia(let bucket):
                 return ("https://workers.cosmicjs.com/v3/buckets/\(bucket)/media", ["write_key": write_key])
             case .getMedia:
-                return ("/v3/buckets/\(bucket)/media", ["read_key": read_key, "limit": limit, "props": props])
+                return ("/v3/buckets/\(bucket)/media", ["limit": limit, "props": props])
             case .getMediaObject, .deleteMedia:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/media/\(id)", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/media/\(id)", [:])
                 
             // Object operations (additional)
             case .getObjectRevisions:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/objects/\(id)/revisions", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/objects/\(id)/revisions", [:])
             case .searchObjects:
-                return ("/v3/buckets/\(bucket)/objects/search", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/objects/search", [:])
                 
             // Bucket operations
             case .getBucket:
-                return ("/v3/buckets/\(bucket)", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)", [:])
             case .updateBucketSettings:
                 return ("/v3/buckets/\(bucket)/settings", ["write_key": write_key])
                 
             // User operations
             case .getUsers:
-                return ("/v3/buckets/\(bucket)/users", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/users", [:])
             case .getUser:
                 guard let id = id else { fatalError("Missing ID for \(api) operation") }
-                return ("/v3/buckets/\(bucket)/users/\(id)", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/users/\(id)", [:])
             case .addUser:
                 return ("/v3/buckets/\(bucket)/users", ["write_key": write_key])
             case .deleteUser:
@@ -140,7 +162,7 @@ public struct CosmicEndpointProvider {
                 
             // Webhook operations
             case .getWebhooks:
-                return ("/v3/buckets/\(bucket)/webhooks", ["read_key": read_key])
+                return ("/v3/buckets/\(bucket)/webhooks", [:])
             case .addWebhook:
                 return ("/v3/buckets/\(bucket)/webhooks", ["write_key": write_key])
             case .deleteWebhook:

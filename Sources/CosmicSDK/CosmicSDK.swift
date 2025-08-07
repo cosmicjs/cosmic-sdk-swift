@@ -65,12 +65,9 @@ public class CosmicSDKSwift {
                   writeKey: writeKey,
                   session: .shared,
                   authorizeRequest: { request in
-                    // Use readKey for GET requests, writeKey for others
-                    if request.httpMethod == "GET" {
-                        // For GET requests, use readKey in Authorization header
-                        request.setValue("Bearer \(readKey)", forHTTPHeaderField: "Authorization")
-                    } else {
-                        // For other requests, use writeKey
+                    // Only add Authorization header for non-GET requests
+                    // GET requests use read_key in URL parameters
+                    if request.httpMethod != "GET" {
                         request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
                     }
             })
