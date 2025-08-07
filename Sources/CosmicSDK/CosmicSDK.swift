@@ -84,18 +84,6 @@ public class CosmicSDKSwift {
             if let error = error {
                 completionHandler(.failure(error))
             } else if let data = data {
-                // Debug: Print response details
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("Response Status: \(httpResponse.statusCode)")
-                    print("Response Headers: \(httpResponse.allHeaderFields)")
-                }
-                
-                // Debug: Print first 500 characters of response
-                if let responseString = String(data: data, encoding: .utf8) {
-                    let preview = String(responseString.prefix(500))
-                    print("Response Preview: \(preview)")
-                }
-                
                 completionHandler(.success(data))
             }
         }
@@ -133,11 +121,6 @@ public class CosmicSDKSwift {
         config.authorizeRequest(&request)
         
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Debug: Print request details
-        print("Request URL: \(request.url?.absoluteString ?? "nil")")
-        print("Request Method: \(request.httpMethod ?? "nil")")
-        print("Request Headers: \(request.allHTTPHeaderFields ?? [:])")
         
         if let body = body {
             if let jsonData = try? JSONEncoder().encode(body) {
@@ -337,7 +320,6 @@ extension CosmicSDKSwift {
         let endpoint = CosmicEndpointProvider.API.deleteOne
         let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey)
                 
-        print(request)
         makeRequest(request: request) { result in
             switch result {
             case .success(let success):
@@ -402,10 +384,6 @@ extension CosmicSDKSwift {
                         let response = try JSONDecoder().decode(CosmicMediaSingleResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error: \(error)")
-                        if let jsonString = String(data: data, encoding: .utf8) {
-                            print("Response data: \(jsonString)")
-                        }
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
@@ -1084,18 +1062,10 @@ extension CosmicSDKSwift {
             makeRequest(request: request) { result in
                 switch result {
                 case .success(let data):
-                    // Print raw response for debugging
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("Raw AI response:", jsonString)
-                    }
                     do {
                         let response = try JSONDecoder().decode(AITextResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
-                        print("Decoding error:", error)
-                        if let jsonString = String(data: data, encoding: .utf8) {
-                            print("Response data:", jsonString)
-                        }
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
                     }
                 case .failure(let error):
