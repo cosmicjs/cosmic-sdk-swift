@@ -65,7 +65,14 @@ public class CosmicSDKSwift {
                   writeKey: writeKey,
                   session: .shared,
                   authorizeRequest: { request in
-                    request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    // Use readKey for GET requests, writeKey for others
+                    if request.httpMethod == "GET" {
+                        // For GET requests, use readKey in Authorization header
+                        request.setValue("Bearer \(readKey)", forHTTPHeaderField: "Authorization")
+                    } else {
+                        // For other requests, use writeKey
+                        request.setValue("Bearer \(writeKey)", forHTTPHeaderField: "Authorization")
+                    }
             })
         }
     }
@@ -113,9 +120,15 @@ public class CosmicSDKSwift {
             urlComponents = components
         }
         
-        // Add query parameters
+        // Add query parameters - only include those with actual values
         var finalComponents = urlComponents
-        finalComponents.queryItems = pathAndParameters.1.compactMap { URLQueryItem(name: $0.key, value: $0.value) }
+        finalComponents.queryItems = pathAndParameters.1.compactMap { key, value in
+            // Skip empty, nil, or whitespace-only values
+            guard let value = value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { 
+                return nil 
+            }
+            return URLQueryItem(name: key, value: value)
+        }
         
         var request = URLRequest(url: finalComponents.url!)
         request.httpMethod = config.endpointProvider.getMethod(api: endpoint)
@@ -186,6 +199,26 @@ extension CosmicSDKSwift {
     
     public struct SuccessResponse: Decodable {
         public let message: String?
+    }
+    
+    /// Get bucket information including available object types
+    public func getBucketInfo(completionHandler: @escaping (Result<BucketResponse, CosmicError>) -> Void) {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        makeRequest(request: request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(BucketResponse.self, from: data)
+                    completionHandler(.success(response))
+                } catch {
+                    completionHandler(.failure(.decodingError(error: error)))
+                }
+            case .failure(let error):
+                completionHandler(.failure(.genericError(error: error)))
+            }
+        }
     }
     
     /// Test connection to Cosmic API
@@ -502,6 +535,27 @@ extension CosmicSDKSwift {
 
 // MARK: - Connection Testing
 extension CosmicSDKSwift {
+    public func getBucketInfo() async throws -> BucketResponse {
+        let endpoint = CosmicEndpointProvider.API.getBucket
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(BucketResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
     public func testConnection() async throws -> String {
         let endpoint = CosmicEndpointProvider.API.getBucket
         let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: "", read_key: config.readKey)

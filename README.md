@@ -44,6 +44,15 @@ do {
 } catch {
     print("Connection failed: \(error)")
 }
+
+// Get bucket information to see available object types
+do {
+    let bucketInfo = try await cosmic.getBucketInfo()
+    print("Bucket title: \(bucketInfo.bucket.title)")
+    // This will help you see what object types are available
+} catch {
+    print("Failed to get bucket info: \(error)")
+}
 ```
 
 ### Common Issues
@@ -58,8 +67,11 @@ do {
 
    - Check your Cosmic dashboard for available object types
    - Object type names are case-sensitive
+   - Use `getBucketInfo()` to see available object types
 
-3. **Network Issues**: Ensure your app has internet connectivity
+3. **Empty Query Parameters**: The SDK now automatically filters out empty parameters
+
+4. **Network Issues**: Ensure your app has internet connectivity
 
 ```swift
 let cosmic = CosmicSDKSwift(
