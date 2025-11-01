@@ -186,7 +186,7 @@ extension CosmicSDKSwift {
         if options.contains(.extended) { flags.append("x") }
         return flags
     }
-    
+
     private func buildRegexQueryJSON(type: String, field: String, pattern: String, options: CosmicRegexOptions?) -> String? {
         var payload: [String: Any] = [
             "type": type
@@ -201,6 +201,26 @@ extension CosmicSDKSwift {
             }
         }
         payload[field] = fieldQuery
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return json
+    }
+
+    /// Build MongoDB-style query JSON from a dictionary of filters
+    /// - Parameters:
+    ///   - type: Object type to query
+    ///   - query: Dictionary of field filters with MongoDB operators
+    /// - Returns: JSON string for the query parameter
+    private func buildQueryJSON(type: String, query: [String: Any]) -> String? {
+        var payload: [String: Any] = [
+            "type": type
+        ]
+        // Merge the query filters into the payload
+        for (key, value) in query {
+            payload[key] = value
+        }
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else {
             return nil
@@ -263,10 +283,11 @@ extension CosmicSDKSwift {
         }
     }
     
-    public func find(type: String, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+    public func find(type: String, query: [String: Any]? = nil, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description)
-        
+        let queryJSON = query.flatMap { buildQueryJSON(type: type, query: $0) }
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description, query: queryJSON)
+
         makeRequest(request: request) { result in
             switch result {
             case .success(let success):
@@ -597,10 +618,11 @@ extension CosmicSDKSwift {
 
 // MARK: - Object Operations (Async/Await)
 extension CosmicSDKSwift {
-    public func find(type: String, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDK {
+    public func find(type: String, query: [String: Any]? = nil, props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDK {
         let endpoint = CosmicEndpointProvider.API.find
-        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description)
-        
+        let queryJSON = query.flatMap { buildQueryJSON(type: type, query: $0) }
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description, query: queryJSON)
+
         return try await withCheckedThrowingContinuation { continuation in
             makeRequest(request: request) { result in
                 switch result {

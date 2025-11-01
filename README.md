@@ -377,7 +377,7 @@ cosmic.find(
 
 ### Regex queries
 
-Use `findRegex` for server-side regex filtering (mirrors the JavaScript SDK’s `$regex` / `$options`). Supports nested fields like `metadata.brand`.
+Use `findRegex` for server-side regex filtering (mirrors the JavaScript SDK's `$regex` / `$options`). Supports nested fields like `metadata.brand`.
 
 **Async/Await:**
 
@@ -417,6 +417,113 @@ cosmic.findRegex(
         print(error)
     }
 }
+```
+
+### MongoDB-Style Query Filters
+
+The `find` method now supports MongoDB-style query filters, allowing you to build complex queries with operators like `$in`, `$eq`, `$gt`, `$lt`, `$exists`, and more. This is particularly useful for filtering by relationship IDs in nested metadata fields.
+
+**Async/Await:**
+
+```swift
+// Filter by single relationship ID
+let episodes = try await cosmic.find(
+    type: "episode",
+    query: ["metadata.regular_hosts.id": "host-id-123"],
+    depth: 2
+)
+
+// Filter by multiple relationship IDs using $in operator
+let episodes = try await cosmic.find(
+    type: "episode",
+    query: [
+        "metadata.regular_hosts.id": ["$in": ["host-id-1", "host-id-2", "host-id-3"]]
+    ],
+    props: "id,slug,title,content,metadata",
+    limit: 20,
+    depth: 2
+)
+
+// Filter by date range
+let recentEpisodes = try await cosmic.find(
+    type: "episode",
+    query: [
+        "metadata.broadcast_date": ["$gte": "2024-01-01"]
+    ],
+    limit: 10
+)
+
+// Check field existence
+let episodesWithTakeovers = try await cosmic.find(
+    type: "episode",
+    query: [
+        "metadata.takeovers": ["$exists": true]
+    ]
+)
+
+// Combine multiple filters
+let filteredEpisodes = try await cosmic.find(
+    type: "episode",
+    query: [
+        "metadata.regular_hosts.id": ["$in": ["host-1", "host-2"]],
+        "metadata.broadcast_date": ["$gte": "2024-01-01", "$lte": "2024-12-31"],
+        "status": "published"
+    ],
+    depth: 2
+)
+```
+
+**Completion Handler:**
+
+```swift
+cosmic.find(
+    type: "episode",
+    query: [
+        "metadata.regular_hosts.id": ["$in": ["host-id-1", "host-id-2"]]
+    ],
+    depth: 2
+) { results in
+    switch results {
+    case .success(let result):
+        print("Found \(result.objects.count) episodes")
+    case .failure(let error):
+        print(error)
+    }
+}
+```
+
+**Supported MongoDB Operators:**
+
+- `$in`: Value is in array
+- `$nin`: Value is not in array
+- `$eq`: Equal to (can also use direct value)
+- `$ne`: Not equal to
+- `$gt`: Greater than
+- `$gte`: Greater than or equal
+- `$lt`: Less than
+- `$lte`: Less than or equal
+- `$exists`: Field exists
+- `$regex`: Regular expression match (or use `findRegex` for a more convenient API)
+
+**Benefits Over Regex:**
+
+When querying by relationship IDs, MongoDB-style filters are more efficient than regex patterns:
+
+```swift
+// Less efficient: Using regex
+let episodes = try await cosmic.findRegex(
+    type: "episode",
+    field: "metadata.regular_hosts.id",
+    pattern: "^\(hostId)$",  // Exact match regex
+    depth: 2
+)
+
+// More efficient: Using query filters
+let episodes = try await cosmic.find(
+    type: "episode",
+    query: ["metadata.regular_hosts.id": hostId],
+    depth: 2
+)
 ```
 
 ### [Find One](https://www.cosmicjs.com/docs/api/objects#get-a-single-object-by-id)
