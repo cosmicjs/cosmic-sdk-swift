@@ -20,6 +20,16 @@ public enum CosmicError: Error {
 public typealias CosmicStatus = CosmicEndpointProvider.Status
 public typealias CosmicSorting = CosmicEndpointProvider.Sorting
 
+// Regex options for $options in Cosmic queries (mirrors common PCRE flags used by Cosmic)
+public struct CosmicRegexOptions: OptionSet {
+    public let rawValue: Int
+    public init(rawValue: Int) { self.rawValue = rawValue }
+    public static let caseInsensitive = CosmicRegexOptions(rawValue: 1 << 0) // i
+    public static let multiline       = CosmicRegexOptions(rawValue: 1 << 1) // m
+    public static let dotMatchesNewline = CosmicRegexOptions(rawValue: 1 << 2) // s
+    public static let extended        = CosmicRegexOptions(rawValue: 1 << 3) // x
+}
+
 // MARK: - String to Int conversion helper
 // For backwards compatibility, if you have String limits in your code,
 // you can convert them using: Int(yourStringLimit) ?? defaultValue
@@ -91,8 +101,8 @@ public class CosmicSDKSwift {
         task.resume()
     }
    
-    private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil) -> URLRequest where BodyType: Encodable {
-        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, skip: skip, status: status, sort: sort, depth: depth)
+    private func prepareRequest<BodyType>(_ endpoint: CosmicEndpointProvider.API, body: BodyType? = nil, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil, query: String? = nil) -> URLRequest where BodyType: Encodable {
+        let pathAndParameters = config.endpointProvider.getPath(api: endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit, skip: skip, status: status, sort: sort, depth: depth, metadata: metadata, queryJSON: query)
         
         // Create URL components based on whether we have a full URL or just a path
         let urlComponents: URLComponents
@@ -132,8 +142,8 @@ public class CosmicSDKSwift {
     }
 
     // Helper method for requests without body
-    private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil) -> URLRequest {
-        return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, skip: skip, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status, depth: depth)
+    private func prepareRequest(_ endpoint: CosmicEndpointProvider.API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String? = nil, props: String? = nil, limit: String? = nil, skip: String? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: AnyCodable]? = nil, sort: CosmicEndpointProvider.Sorting? = nil, status: CosmicEndpointProvider.Status? = nil, depth: String? = nil, query: String? = nil) -> URLRequest {
+        return prepareRequest(endpoint, body: nil as String?, id: id, bucket: bucket, type: type, read_key: read_key, write_key: write_key, props: props, limit: limit, skip: skip, title: title, slug: slug, content: content, metadata: metadata, sort: sort, status: status, depth: depth, query: query)
     }
 
     private func mimeType(for url: URL) -> String {
@@ -163,6 +173,39 @@ public class CosmicSDKSwift {
         default:
             return "application/octet-stream"
         }
+    }
+}
+
+// MARK: - Internal Helpers (Query Building)
+extension CosmicSDKSwift {
+    private func regexOptionsString(_ options: CosmicRegexOptions) -> String {
+        var flags = ""
+        if options.contains(.caseInsensitive) { flags.append("i") }
+        if options.contains(.multiline) { flags.append("m") }
+        if options.contains(.dotMatchesNewline) { flags.append("s") }
+        if options.contains(.extended) { flags.append("x") }
+        return flags
+    }
+    
+    private func buildRegexQueryJSON(type: String, field: String, pattern: String, options: CosmicRegexOptions?) -> String? {
+        var payload: [String: Any] = [
+            "type": type
+        ]
+        var fieldQuery: [String: Any] = [
+            "$regex": pattern
+        ]
+        if let options = options, !options.isEmpty {
+            let flags = regexOptionsString(options)
+            if !flags.isEmpty {
+                fieldQuery["$options"] = flags
+            }
+        }
+        payload[field] = fieldQuery
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return json
     }
 }
 
@@ -575,6 +618,28 @@ extension CosmicSDKSwift {
         }
     }
     
+    public func findRegex(type: String, field: String, pattern: String, options: CosmicRegexOptions = [.caseInsensitive], props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDK {
+        let endpoint = CosmicEndpointProvider.API.find
+        let queryJSON = buildRegexQueryJSON(type: type, field: field, pattern: pattern, options: options)
+        let request = prepareRequest(endpoint, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, limit: limit?.description, skip: skip?.description, sort: sort, status: status, depth: depth?.description, query: queryJSON)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(CosmicSDK.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
     public func findOne(type: String, id: String, props: String? = nil, limit: Int? = nil, status: CosmicStatus? = nil, depth: Int? = 1) async throws -> CosmicSDKSingle {
         let endpoint = CosmicEndpointProvider.API.findOne
         let request = prepareRequest(endpoint, id: id, bucket: config.bucketSlug, type: type, read_key: config.readKey, props: props, status: status, depth: depth?.description)
@@ -724,6 +789,17 @@ extension CosmicSDKSwift {
         Task {
             do {
                 let result = try await getObjectRevisions(id: id)
+                completionHandler(.success(result))
+            } catch {
+                completionHandler(.failure(error as! CosmicError))
+            }
+        }
+    }
+    
+    public func findRegex(type: String, field: String, pattern: String, options: CosmicRegexOptions = [.caseInsensitive], props: String? = nil, limit: Int? = nil, skip: Int? = nil, sort: CosmicSorting? = nil, status: CosmicStatus? = nil, depth: Int? = 1, completionHandler: @escaping (Result<CosmicSDK, CosmicError>) -> Void) {
+        Task {
+            do {
+                let result = try await findRegex(type: type, field: field, pattern: pattern, options: options, props: props, limit: limit, skip: skip, sort: sort, status: status, depth: depth)
                 completionHandler(.success(result))
             } catch {
                 completionHandler(.failure(error as! CosmicError))

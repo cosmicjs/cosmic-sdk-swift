@@ -375,6 +375,50 @@ cosmic.find(
 }
 ```
 
+### Regex queries
+
+Use `findRegex` for server-side regex filtering (mirrors the JavaScript SDK’s `$regex` / `$options`). Supports nested fields like `metadata.brand`.
+
+**Async/Await:**
+
+```swift
+// Case-insensitive title match
+let hoodieResults = try await cosmic.findRegex(
+    type: "products",
+    field: "title",
+    pattern: "Hoodie",            // regex pattern
+    options: [.caseInsensitive],   // defaults to case-insensitive
+    limit: 10
+)
+
+// Regex on nested metadata field
+let brandResults = try await cosmic.findRegex(
+    type: "products",
+    field: "metadata.brand",
+    pattern: "^acme$",
+    options: [.caseInsensitive]
+)
+```
+
+**Completion Handler:**
+
+```swift
+cosmic.findRegex(
+    type: "products",
+    field: "title",
+    pattern: "Hoodie",
+    options: [.caseInsensitive],
+    limit: 10
+) { results in
+    switch results {
+    case .success(let result):
+        print("Found: \(result.objects.count)")
+    case .failure(let error):
+        print(error)
+    }
+}
+```
+
 ### [Find One](https://www.cosmicjs.com/docs/api/objects#get-a-single-object-by-id)
 
 **Async/Await:**

@@ -85,14 +85,14 @@ public struct CosmicEndpointProvider {
         }
     }
     
-    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, skip: String? = nil, status: Status? = nil, sort: Sorting? = nil, depth: String? = nil, metadata: [String: AnyCodable]? = nil) -> (String, [String: String?]) {
+    public func getPath(api: API, id: String? = nil, bucket: String, type: String, read_key: String, write_key: String?, props: String? = nil, limit: String? = nil, skip: String? = nil, status: Status? = nil, sort: Sorting? = nil, depth: String? = nil, metadata: [String: AnyCodable]? = nil, queryJSON: String? = nil) -> (String, [String: String?]) {
         switch source {
         case .cosmic:
             switch api {
             // Object endpoints
             case .find:
-                // Build query parameter for type filtering
-                let queryParam = "{\"type\":\"\(type)\"}"
+                // Build query parameter. Allow override via queryJSON to support advanced queries (e.g., $regex)
+                let queryParam = queryJSON ?? "{\"type\":\"\(type)\"}"
                 let defaultProps = "slug,title,metadata,type,"
                 let finalProps = props ?? defaultProps
                 
