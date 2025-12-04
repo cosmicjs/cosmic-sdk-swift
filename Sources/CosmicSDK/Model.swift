@@ -68,6 +68,12 @@ public struct CosmicSDKSingle: Codable {
     public let object: Object
 }
 
+/// Response type for insertOne that returns the created object
+/// This allows access to the newly created object's id, slug, and other properties
+public struct InsertOneResponse: Codable {
+    public let object: Object
+}
+
 // MARK: - Metafield Models
 public enum MetafieldType: String, Codable {
     case text = "text"

@@ -351,6 +351,33 @@ extension CosmicSDKSwift {
         }
     }
     
+    /// Insert a new object and return the created object with its ID (completion handler version)
+    /// Use this when you need access to the created object's properties (id, slug, etc.)
+    public func insertOneWithResponse(type: String, props: String? = nil, limit: Int? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<InsertOneResponse, CosmicError>) -> Void) {
+        let endpoint = CosmicEndpointProvider.API.insertOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+                
+        makeRequest(request: request) { result in
+            switch result {
+            case .success(let success):
+                do {
+                    let res = try JSONDecoder().decode(InsertOneResponse.self, from: success)
+                    completionHandler(.success(res))
+                } catch {
+                    completionHandler(.failure(.decodingError(error: error)))
+                }
+            case .failure(let failure):
+                completionHandler(.failure(.genericError(error: failure)))
+            }
+        }
+    }
+    
 
     
     public func updateOne(type: String, id: String, props: String? = nil, limit: Int? = nil, title: String? = nil, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicEndpointProvider.Status? = nil, publish_at: String? = nil, unpublish_at: String? = nil, completionHandler: @escaping (Result<SuccessResponse, CosmicError>) -> Void) {
@@ -699,6 +726,35 @@ extension CosmicSDKSwift {
                 case .success(let data):
                     do {
                         let response = try JSONDecoder().decode(SuccessResponse.self, from: data)
+                        continuation.resume(returning: response)
+                    } catch {
+                        continuation.resume(throwing: CosmicError.decodingError(error: error))
+                    }
+                case .failure(let error):
+                    continuation.resume(throwing: CosmicError.genericError(error: error))
+                }
+            }
+        }
+    }
+    
+    /// Insert a new object and return the created object with its ID
+    /// Use this when you need access to the created object's properties (id, slug, etc.)
+    public func insertOneWithResponse(type: String, props: String? = nil, limit: Int? = nil, title: String, slug: String? = nil, content: String? = nil, metadata: [String: Any]? = nil, status: CosmicStatus? = nil, publish_at: String? = nil, unpublish_at: String? = nil) async throws -> InsertOneResponse {
+        let endpoint = CosmicEndpointProvider.API.insertOne
+        let metadataCodable = metadata.map { $0.mapValues { AnyCodable(value: $0) } }
+        
+        // If publish_at or unpublish_at is set, force status to draft
+        let finalStatus = (publish_at != nil || unpublish_at != nil) ? "draft" : status?.rawValue
+        
+        let body = Body(type: type.isEmpty ? nil : type, title: title.isEmpty ? nil : title, content: content?.isEmpty == true ? nil : content, metadata: metadataCodable, status: finalStatus, publish_at: publish_at, unpublish_at: unpublish_at)
+        let request = prepareRequest(endpoint, body: body, bucket: config.bucketSlug, type: type, read_key: config.readKey, write_key: config.writeKey, props: props, limit: limit?.description, title: title, slug: slug, content: content, metadata: metadataCodable, status: status)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            makeRequest(request: request) { result in
+                switch result {
+                case .success(let data):
+                    do {
+                        let response = try JSONDecoder().decode(InsertOneResponse.self, from: data)
                         continuation.resume(returning: response)
                     } catch {
                         continuation.resume(throwing: CosmicError.decodingError(error: error))
