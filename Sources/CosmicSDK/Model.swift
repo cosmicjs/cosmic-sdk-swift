@@ -62,6 +62,16 @@ public struct AnyCodable: Codable {
 
 public struct CosmicSDK: Codable {
     public let objects: [Object]
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Handle cases where objects might be missing (e.g., 404 "no objects found" responses)
+        self.objects = (try? container.decode([Object].self, forKey: .objects)) ?? []
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case objects
+    }
 }
 
 public struct CosmicSDKSingle: Codable {
